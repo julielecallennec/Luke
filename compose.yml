@@ -1,31 +1,25 @@
 services:
   mongodb:
     image: mongo:7.0
-    container_name: luke_mongodb
-    ports:
-      - "27017:27017"
     volumes:
       - mongodb_data:/data/db
-    networks:
-      - luke-network
-    restart: always
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   backend:
     build: .
-    container_name: luke_backend
     ports:
       - "8000:8000"
     environment:
-      - MONGO_URI=mongodb://mongodb:27017/luke_db
+      MONGO_URI: ${MONGO_URI:-mongodb://mongodb:27017/luke_db}
     depends_on:
-      - mongodb
-    networks:
-      - luke-network
-    restart: always
+      mongodb:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   mongodb_data:
-
-networks:
-  luke-network:
-    driver: bridge
