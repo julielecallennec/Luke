@@ -4,7 +4,7 @@
 
 ---
 
-## 📋 Table des Matières
+## Table des Matières
 1. [Aperçu & Fonctionnalités Clés](#-aperçu--fonctionnalités-clés)
 2. [Lancement Rapide en 1 Commande](#-lancement-rapide-en-1-commande)
 3. [Architecture MongoDB & Multi-Tenancy Stricte](#-architecture-mongodb--multi-tenancy-stricte)
@@ -17,7 +17,7 @@
 
 ---
 
-## 🌟 Aperçu & Fonctionnalités Clés
+## Aperçu & Fonctionnalités Clés
 
 Luke offre une expérience utilisateur moderne servie directement par FastAPI avec TailwindCSS et SortableJS :
 
@@ -34,17 +34,17 @@ Luke offre une expérience utilisateur moderne servie directement par FastAPI av
 * **Simulateur de Rôles (User Switcher)** : Permet d'endosser le profil d'un collaborateur `ADMIN` ou `MEMBER` avec pastille d'avatar personnalisée.
 * **Jauge d'Avancement Dynamique** : Barre de progression animée calculant en temps réel le pourcentage et le ratio de tâches complétées (`DONE`) sur le projet actif.
 * **Filtres Rapides Intelligents** :
-  * 🎯 Bouton **"Mes tâches"** filtrant instantanément sur le collaborateur connecté.
-  * 👤 Filtrage par membre d'équipe assigné.
-  * 🚨 Filtrage par priorité (`HIGH`, `MEDIUM`, `LOW`).
-  * 🏷️ Filtrage interactif au clic sur n'importe quel badge de tag.
-  * 🔍 Recherche plein texte en direct dans les titres, descriptions et tags.
+  * Bouton **"Mes tâches"** filtrant instantanément sur le collaborateur connecté.
+  * Filtrage par membre d'équipe assigné.
+  * Filtrage par priorité (`HIGH`, `MEDIUM`, `LOW`).
+  * Filtrage interactif au clic sur n'importe quel badge de tag.
+  * Recherche plein texte en direct dans les titres, descriptions et tags.
 * **Indicateurs Visuels** : Badges de priorités avec code couleur, tags multiples, et alertes visuelles sur les dates d'échéance dépassées (badges rouges `(En retard)`).
 * **Suppression en Cascade Sécurisée** : La suppression d'une entreprise détruit en cascade tous ses projets, utilisateurs et tâches. La suppression d'un utilisateur désassigne ses tâches et le retire des projets de l'organisation.
 
 ---
 
-## ⚡ Lancement Rapide en 1 Commande
+## Lancement Rapide en 1 Commande
 
 Le déploiement complet (FastAPI + MongoDB 7.0 + Seed automatique + Interface Web) s'effectue sans aucune action manuelle préalable.
 
@@ -55,10 +55,10 @@ docker compose up -d --build
 ```
 
 ### URLs d'Accès :
-* 🖥️ **Interface Web Luke** : [http://localhost:8000](http://localhost:8000)
-* 📚 **Documentation Swagger interactive** : [http://localhost:8000/docs](http://localhost:8000/docs)
-* 🔍 **Spécification OpenAPI (JSON)** : [http://localhost:8000/openapi.json](http://localhost:8000/openapi.json)
-* 💓 **Health Check** : [http://localhost:8000/health](http://localhost:8000/health)
+* **Interface Web Luke** : [http://localhost:8000](http://localhost:8000)
+* **Documentation Swagger interactive** : [http://localhost:8000/docs](http://localhost:8000/docs)
+* **Spécification OpenAPI (JSON)** : [http://localhost:8000/openapi.json](http://localhost:8000/openapi.json)
+* **Health Check** : [http://localhost:8000/health](http://localhost:8000/health)
 
 Pour arrêter les conteneurs :
 ```bash
@@ -67,7 +67,7 @@ docker compose down
 
 ---
 
-## 🛡️ Architecture MongoDB & Multi-Tenancy Stricte
+## Architecture MongoDB & Multi-Tenancy Stricte
 
 ### 1. Référencement (Normalized Data Model) vs Imbrication (Embedded)
 Les données sont réparties en **4 collections distinctes** : `companies`, `users`, `projects`, `tasks`.
@@ -81,7 +81,7 @@ Le champ `company_id` (`ObjectId`) est **obligatoirement présent et dénormalis
 
 ---
 
-## 📑 Schémas JSON des 4 Collections
+## Schémas JSON des 4 Collections
 
 ### 1. `companies` (Entreprises)
 ```json
@@ -146,7 +146,7 @@ Le champ `company_id` (`ObjectId`) est **obligatoirement présent et dénormalis
 
 ---
 
-## ⚡ Stratégie d'Indexation
+## Stratégie d'Indexation
 
 Les index sont créés automatiquement au démarrage de l'application FastAPI (`lifespan`) :
 
@@ -159,7 +159,7 @@ Les index sont créés automatiquement au démarrage de l'application FastAPI (`
 
 ---
 
-## 🌐 Préparation Native au Sharding (Partie II)
+## Préparation Native au Sharding (Partie II)
 
 Conformément au cahier des charges, l'application est conçue dès la Partie I pour évoluer vers un cluster distribué sans refonte :
 
@@ -173,27 +173,27 @@ Conformément au cahier des charges, l'application est conçue dès la Partie I 
 
 ---
 
-## 🎲 Données de Démonstration (Seed Data)
+## Données de Démonstration (Seed Data)
 
 Au premier lancement, si la base est vide, deux entreprises complètes et indépendantes sont automatiquement créées :
 
 ### 1. Agence Web Créative (`slug`: `agence-web-creative`, `plan`: `PRO`)
 * **Utilisateurs** :
-  * 👑 **Alice Martin** (`alice@agence-creative.fr`, rôle `ADMIN`, avatar `#4F46E5`)
-  * 👤 **Bob Dupont** (`bob@agence-creative.fr`, rôle `MEMBER`, avatar `#10B981`)
-  * 👤 **Clara Bernard** (`clara@agence-creative.fr`, rôle `MEMBER`, avatar `#F59E0B`)
+  * **Alice Martin** (`alice@agence-creative.fr`, rôle `ADMIN`, avatar `#4F46E5`)
+  * **Bob Dupont** (`bob@agence-creative.fr`, rôle `MEMBER`, avatar `#10B981`)
+  * **Clara Bernard** (`clara@agence-creative.fr`, rôle `MEMBER`, avatar `#F59E0B`)
 * **Projet 1** : *"Refonte Site E-commerce"* (7 tâches complètes réparties dans les 4 colonnes).
 * **Projet 2** : *"Application Mobile iOS & Android"* (2 tâches en cours/terminées).
 
 ### 2. TechNova Solutions (`slug`: `technova-solutions`, `plan`: `ENTERPRISE`)
 * **Utilisateurs** :
-  * 👑 **David Moreau** (`david@technova.io`, rôle `ADMIN`, avatar `#8B5CF6`)
-  * 👤 **Emma Leroy** (`emma@technova.io`, rôle `MEMBER`, avatar `#EC4899`)
+  * **David Moreau** (`david@technova.io`, rôle `ADMIN`, avatar `#8B5CF6`)
+  * **Emma Leroy** (`emma@technova.io`, rôle `MEMBER`, avatar `#EC4899`)
 * **Projet 1** : *"Plateforme Cloud & Observabilité"* (3 tâches techniques Sharding / Prometheus).
 
 ---
 
-## 🔔 Intégration Webhook Discord
+## Intégration Webhook Discord
 
 L'application intègre le webhook du serveur **Grande SAE** pour notifier en direct :
 * Le bouton **"Test Webhook"** dans le header déclenche une notification d'intégration immédiate (`POST /api/webhook/test`).
@@ -201,7 +201,7 @@ L'application intègre le webhook du serveur **Grande SAE** pour notifier en dir
 
 ---
 
-## 📖 Documentation de l'API REST
+## Documentation de l'API REST
 
 | Méthode | Endpoint | Description | Sécurité & Cascade |
 |---|---|---|---|

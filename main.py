@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app.config import settings
-from app.database import get_client, get_database, init_indexes, ping_database_with_retry
+from app.database import get_client, init_indexes, ping_database_with_retry
 from app.routers import companies, projects, tasks, users, webhooks
 from app.seed import seed_demo_data
 
@@ -34,11 +34,10 @@ async def lifespan(app: FastAPI):
     # Attente active de MongoDB
     is_connected = await ping_database_with_retry(max_retries=15, delay_seconds=1.0)
     if is_connected:
-        db = get_database()
         # Création des index
-        await init_indexes(db)
+        await init_indexes()
         # Seed initial
-        await seed_demo_data(db)
+        await seed_demo_data()
     else:
         logger.error("ATTENTION : MongoDB n'a pas répondu. L'application démarre en mode dégradé.")
 
@@ -87,7 +86,11 @@ async def serve_home(request: Request):
     """
     Sert l'interface Web SaaS Kanban interactive.
     """
-    return templates.TemplateResponse("index.html", {"request": request, "app_name": settings.APP_NAME})
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context={"app_name": settings.APP_NAME},
+    )
 
 
 @app.get("/health", tags=["Système"])
