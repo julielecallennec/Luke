@@ -188,7 +188,8 @@ const LukeApp = {
     }
   },
 
-  quickLogin(email, password, companySlug = "") {
+  quickLogin(event, email, password, companySlug = "") {
+    event?.preventDefault();
     const emailInput = document.getElementById("login-email");
     const passInput = document.getElementById("login-password");
     const slugInput = document.getElementById("login-company-slug");
