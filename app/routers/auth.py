@@ -362,9 +362,13 @@ async def get_me(session: dict = Depends(get_active_session)):
             detail="Utilisateur de la session introuvable."
         )
 
+    user_data = serialize_doc(user)
+    if user_data and "password_hash" in user_data:
+        del user_data["password_hash"]
+
     company = await db.companies.find_one({"_id": session["company_id"]})
     return {
-        "user": serialize_doc(user),
+        "user": user_data,
         "company": serialize_doc(company)
     }
 
