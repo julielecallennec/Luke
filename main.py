@@ -34,11 +34,10 @@ async def lifespan(app: FastAPI):
     # Attente active de MongoDB
     is_connected = await ping_database_with_retry(max_retries=15, delay_seconds=1.0)
     if is_connected:
-        db = get_database()
         # Création des index
-        await init_indexes(db)
+        await init_indexes()
         # Seed initial
-        await seed_demo_data(db)
+        await seed_demo_data()
     else:
         logger.error("ATTENTION : MongoDB n'a pas répondu. L'application démarre en mode dégradé.")
 
