@@ -76,7 +76,7 @@ async def init_indexes(database: Optional[AsyncIOMotorDatabase] = None) -> None:
     - tasks     : { company_id: 1, project_id: 1, status: 1, position: 1 }
     - tasks     : { company_id: 1, assignee_id: 1 }
     """
-    target_db = database or get_database()
+    target_db = database if database is not None else get_database()
     try:
         # Index unique sur le slug d'entreprise
         await target_db.companies.create_index([("slug", 1)], unique=True)

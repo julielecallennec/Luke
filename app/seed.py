@@ -18,7 +18,7 @@ async def seed_demo_data(database: Optional[AsyncIOMotorDatabase] = None) -> Non
     Insère automatiquement deux entreprises complètes de démonstration
     si la base de données est vide au démarrage.
     """
-    db = database or get_database()
+    db = database if database is not None else get_database()
     existing_companies = await db.companies.count_documents({})
     if existing_companies > 0:
         logger.info(f"Base de données déjà initialisée ({existing_companies} entreprises trouvées). Pas de seed nécessaire.")
