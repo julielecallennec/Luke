@@ -451,7 +451,7 @@ async def add_subtask(
 async def toggle_subtask(
     task_id: str,
     subtask_id: str,
-    toggle_in: SubTaskToggle,
+    toggle_in: Optional[SubTaskToggle] = None,
     company_id: ObjectId = Depends(get_current_company_id)
 ):
     """
@@ -464,12 +464,14 @@ async def toggle_subtask(
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tâche introuvable.")
 
+    target_done = toggle_in.done if (toggle_in is not None and toggle_in.done is not None) else None
+
     subtasks = task.get("subtasks", [])
     found = False
     for st in subtasks:
         if st.get("id") == subtask_id:
             found = True
-            st["done"] = not st["done"] if toggle_in.done is None else toggle_in.done
+            st["done"] = not st.get("done", False) if target_done is None else target_done
             break
 
     if not found:
