@@ -9,6 +9,8 @@ from app.dependencies import get_current_company_id, parse_object_id
 from app.models.user import UserCreate, UserResponse, UserUpdate
 from app.services.security import hash_password
 
+router = APIRouter(prefix="/api/users", tags=["Utilisateurs (Users)"])
+
 
 @router.get("", response_model=List[UserResponse])
 async def list_users(company_id: ObjectId = Depends(get_current_company_id)):
