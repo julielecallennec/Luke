@@ -17,7 +17,6 @@ from app.models.task import (
     TaskResponse,
     TaskUpdate
 )
-from app.services.discord import send_discord_notification
 
 router = APIRouter(prefix="/api/tasks", tags=["Tâches & Kanban (Tasks)"])
 
@@ -155,12 +154,6 @@ async def create_task(
     res = await db.tasks.insert_one(task_doc)
     task_doc["_id"] = res.inserted_id
 
-    # Notification Discord informative
-    await send_discord_notification(
-        title=f"Nouvelle tâche créée : {task_doc['title']}",
-        description=f"Projet : **{project['name']}** | Statut : `{task_doc['status']}` | Priorité : `{task_doc['priority']}`",
-        color=0x4F46E5
-    )
 
     return await enrich_task(task_doc, db)
 
@@ -251,13 +244,6 @@ async def update_task(
         return_document=True
     )
 
-    # Si passage en DONE, notification Discord
-    if task_in.status == "DONE" and task.get("status") != "DONE":
-        await send_discord_notification(
-            title=f"Tâche terminée : {updated['title']} 🎉",
-            description=f"La tâche vient d'être déplacée dans **DONE** !",
-            color=0x10B981
-        )
 
     return await enrich_task(updated, db)
 
@@ -343,13 +329,6 @@ async def move_task(
         return_document=True
     )
 
-    # Notification Discord lors du passage en DONE
-    if new_status == "DONE" and old_status != "DONE":
-        await send_discord_notification(
-            title=f"Tâche terminée : {updated['title']} 🎉",
-            description=f"La tâche vient d'être complétée sur le Kanban !",
-            color=0x10B981
-        )
 
     return await enrich_task(updated, db)
 

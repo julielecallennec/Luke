@@ -37,7 +37,7 @@ class TaskCommentCreate(BaseModel):
 
 class TaskBase(BaseModel):
     title: str = Field(..., min_length=2, max_length=200, examples=["Intégrer le paiement Stripe"])
-    description: str = Field(default="", examples=["Mettre en place le webhook et le formulaire Elements"])
+    description: str = Field(default="", examples=["Mettre en place le formulaire de paiement"])
     status: TaskStatusType = Field(default="TODO", examples=["TODO"])
     priority: TaskPriorityType = Field(default="MEDIUM", examples=["HIGH"])
     position: Optional[int] = Field(default=0, examples=[0])

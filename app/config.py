@@ -1,5 +1,3 @@
-import os
-from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,8 +14,6 @@ class Settings(BaseSettings):
     # Variable d'environnement prioritaire pour la connexion MongoDB
     MONGO_URI: str = "mongodb://mongodb:27017/luke_db"
     
-    # URL du Webhook Discord (pour notifications en temps réel)
-    DISCORD_WEBHOOK_URL: Optional[str] = "https://discord.com/api/webhooks/1560190079031574609/jY71YASDqgPionK1V26R1cgT8HR6JBvqFIxHkLPj6QN3HTdhGkJk6me0WPMVaGI8divn"
     
     model_config = SettingsConfigDict(
         env_file=".env",

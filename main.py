@@ -9,7 +9,7 @@ from fastapi.templating import Jinja2Templates
 
 from app.config import settings
 from app.database import get_client, get_database, init_indexes, ping_database_with_retry
-from app.routers import auth, companies, projects, tasks, users, webhooks
+from app.routers import auth, companies, projects, tasks, users
 from app.seed import seed_demo_data
 
 # Configuration des logs
@@ -79,7 +79,6 @@ app.include_router(companies.router)
 app.include_router(users.router)
 app.include_router(projects.router)
 app.include_router(tasks.router)
-app.include_router(webhooks.router)
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)

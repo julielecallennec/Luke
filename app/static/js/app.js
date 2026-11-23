@@ -1789,33 +1789,6 @@ const LukeApp = {
     if (countTasksEl) countTasksEl.textContent = this.state.tasks.length;
   },
 
-  // --------------------------------------------------------------------------
-  // 17. Webhook Discord Test
-  // --------------------------------------------------------------------------
-  async testDiscordWebhook() {
-    const btn = document.getElementById("btn-test-discord");
-    if (btn) {
-      btn.disabled = true;
-      btn.innerHTML = `⏳ Envoi...`;
-    }
-
-    try {
-      const res = await this.api("/api/webhook/test", {
-        method: "POST",
-        body: JSON.stringify({
-          message: `Notification de test émise depuis l'entreprise **${this.state.currentCompany?.name || 'Luke'}** !`
-        })
-      });
-      this.showToast(res.message, res.status === "success" ? "success" : "warning");
-    } catch (err) {
-      this.showToast("Erreur lors de l'appel au webhook Discord.", "error");
-    } finally {
-      if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = `🔔 <span class="hidden xl:inline">Test Webhook</span>`;
-      }
-    }
-  },
 
   // --------------------------------------------------------------------------
   // 18. Raccourcis Clavier & Helpers UI

@@ -12,8 +12,7 @@
 5. [Stratégie d'Indexation](#-stratégie-dindexation)
 6. [Préparation Native au Sharding (Partie II)](#-préparation-native-au-sharding-partie-ii)
 7. [Données de Démonstration (Seed Data)](#-données-de-démonstration-seed-data)
-8. [Intégration Webhook Discord](#-intégration-webhook-discord)
-9. [Documentation de l'API REST](#-documentation-de-lapi-rest)
+8. [Documentation de l'API REST](#-documentation-de-lapi-rest)
 
 ---
 
@@ -133,7 +132,7 @@ Le champ `company_id` (`ObjectId`) est **obligatoirement présent et dénormalis
   "project_id": ObjectId("652a1b2c3d4e5f6a7b8c9d03"),
   "assignee_id": ObjectId("652a1b2c3d4e5f6a7b8c9d02"),
   "title": "Intégration du paiement Stripe",
-  "description": "Mise en place des webhooks et du tunnel d'achat",
+  "description": "Mise en place du formulaire et du tunnel d'achat",
   "status": "IN_PROGRESS",
   "priority": "HIGH",
   "position": 0,
@@ -193,11 +192,7 @@ Au premier lancement, si la base est vide, deux entreprises complètes et indép
 
 ---
 
-## Intégration Webhook Discord
 
-L'application intègre le webhook du serveur **Grande SAE** pour notifier en direct :
-* Le bouton **"Test Webhook"** dans le header déclenche une notification d'intégration immédiate (`POST /api/webhook/test`).
-* Le passage d'une tâche au statut **DONE** émet automatiquement un embed Discord stylisé avec le nom de la tâche et son projet.
 
 ---
 
@@ -233,7 +228,6 @@ L'application intègre le webhook du serveur **Grande SAE** pour notifier en dir
 | `POST` | `/api/tasks/{id}/comments` | **Ajout d'un commentaire** | Fil d'échange d'équipe horodaté |
 | `DELETE` | `/api/tasks/{id}/comments/{cid}` | Supprime un commentaire | Nettoyage du fil |
 | `DELETE` | `/api/tasks/{id}` | Supprime une tâche | Filtré par `company_id` |
-| `POST` | `/api/webhook/test` | Test Webhook Discord | Notification serveur Grande SAE |
 
 ---
 
