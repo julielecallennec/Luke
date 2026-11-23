@@ -16,6 +16,7 @@ async def seed_demo_data(database: Optional[AsyncIOMotorDatabase] = None) -> Non
     db = database if database is not None else get_database()
     existing_companies = await db.companies.count_documents({})
     if existing_companies > 0:
+        await ensure_demo_accounts(db)
         logger.info(f"Base de données déjà initialisée ({existing_companies} entreprises trouvées). Pas de seed nécessaire.")
         return
 
@@ -425,6 +426,61 @@ async def seed_demo_data(database: Optional[AsyncIOMotorDatabase] = None) -> Non
     await db.tasks.insert_many(tasks_c2)
 
     logger.info("Données de démonstration injectées avec succès (2 entreprises, 5 utilisateurs, 3 projets, 12 tâches avec sous-tâches & commentaires).")
+
+
+async def ensure_demo_accounts(database: AsyncIOMotorDatabase) -> None:
+    """Add demo accounts to an existing database without deleting user data."""
+    now = datetime.now(timezone.utc)
+    demos = [
+        ({"name": "Agence Web Creative", "slug": "agence-web-creative", "plan": "PRO"}, [
+            ("Alice Martin", "alice@agence-creative.fr", "alice123", "ADMIN", "#4F46E5"),
+            ("Bob Dupont", "bob@agence-creative.fr", "bob123", "MEMBER", "#10B981"),
+        ]),
+        ({"name": "TechNova Solutions", "slug": "technova-solutions", "plan": "ENTERPRISE"}, [
+            ("David Moreau", "david@technova.io", "david123", "ADMIN", "#8B5CF6"),
+            ("Emma Leroy", "emma@technova.io", "emma123", "MEMBER", "#EC4899"),
+        ]),
+    ]
+
+    for company_data, users_data in demos:
+        company = await database.companies.find_one({"slug": company_data["slug"]})
+        if company is None:
+            company_doc = {**company_data, "created_at": now, "updated_at": now}
+            result = await database.companies.insert_one(company_doc)
+            company = {**company_doc, "_id": result.inserted_id}
+
+        member_ids = []
+        for name, email, password, role, avatar_color in users_data:
+            fields = {
+                "company_id": company["_id"], "name": name, "email": email,
+                "password_hash": hash_pw(password), "role": role, "avatar_color": avatar_color,
+            }
+            user = await database.users.find_one({"company_id": company["_id"], "email": email})
+            if user:
+                await database.users.update_one({"_id": user["_id"]}, {"$set": fields})
+                member_ids.append(user["_id"])
+            else:
+                fields["created_at"] = now
+                result = await database.users.insert_one(fields)
+                member_ids.append(result.inserted_id)
+
+        project = await database.projects.find_one({"company_id": company["_id"]})
+        if project is None:
+            project_doc = {
+                "company_id": company["_id"], "name": "Demo project",
+                "description": "Project for trying the Luke demo accounts.",
+                "status": "ACTIVE", "member_ids": member_ids,
+                "created_at": now, "updated_at": now,
+            }
+            result = await database.projects.insert_one(project_doc)
+            await database.tasks.insert_one({
+                "company_id": company["_id"], "project_id": result.inserted_id,
+                "assignee_id": member_ids[-1], "title": "Try the Kanban board",
+                "description": "Move this task between columns.", "status": "TODO",
+                "priority": "MEDIUM", "position": 0, "tags": ["Demo"],
+                "due_date": None, "subtasks": [], "comments": [],
+                "created_at": now, "updated_at": now,
+            })
 
 
 async def seed_demo() -> None:

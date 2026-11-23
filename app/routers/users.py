@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pymongo.errors import DuplicateKeyError
 
 from app.database import get_database, serialize_doc, serialize_docs
-from app.dependencies import get_current_company_id, parse_object_id
+from app.dependencies import get_current_company_id, parse_object_id, require_admin
 from app.models.user import UserCreate, UserResponse, UserUpdate
 from app.services.security import hash_password
 
@@ -23,7 +23,7 @@ async def list_users(company_id: ObjectId = Depends(get_current_company_id)):
     return serialize_docs(users)
 
 
-@router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
 async def create_user(
     user_in: UserCreate,
     company_id: ObjectId = Depends(get_current_company_id)
@@ -78,7 +78,7 @@ async def get_user(
     return serialize_doc(user)
 
 
-@router.put("/{user_id}", response_model=UserResponse)
+@router.put("/{user_id}", response_model=UserResponse, dependencies=[Depends(require_admin)])
 async def update_user(
     user_id: str,
     user_in: UserUpdate,
@@ -126,7 +126,7 @@ async def update_user(
     return serialize_doc(updated)
 
 
-@router.delete("/{user_id}", status_code=status.HTTP_200_OK)
+@router.delete("/{user_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(require_admin)])
 async def delete_user(
     user_id: str,
     company_id: ObjectId = Depends(get_current_company_id)

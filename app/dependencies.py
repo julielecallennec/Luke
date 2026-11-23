@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional
 from bson import ObjectId
-from fastapi import Header, HTTPException, Query, status
+from fastapi import Depends, Header, HTTPException, Query, status
 from app.database import get_database
 
 
@@ -29,7 +29,7 @@ async def get_current_company_id(
     x_company_id: Optional[str] = Header(None, alias="X-Company-Id"),
     authorization: Optional[str] = Header(None),
     x_auth_token: Optional[str] = Header(None, alias="X-Auth-Token"),
-    company_id: Optional[str] = Query(None)
+    query_company_id: Optional[str] = Query(None, alias="company_id")
 ) -> ObjectId:
     """
     Dépendance centrale d'isolation Multi-Tenant :
@@ -38,7 +38,7 @@ async def get_current_company_id(
     3. Fallback pour Swagger et facilité de test : première entreprise trouvée.
     """
     db = get_database()
-    cid_str = x_company_id or company_id
+    cid_str = x_company_id or query_company_id
     
     # Vérification d'une session active
     token = extract_token(authorization, x_auth_token)
@@ -88,3 +88,34 @@ async def get_current_user_id(
             return session["user_id"]
 
     return None
+
+
+async def require_authenticated_user(
+    company_id: ObjectId = Depends(get_current_company_id),
+    authorization: Optional[str] = Header(None),
+    x_auth_token: Optional[str] = Header(None, alias="X-Auth-Token")
+) -> dict:
+    """Retourne l'utilisateur lié à une session valide dans l'entreprise active."""
+    token = extract_token(authorization, x_auth_token)
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Connexion requise.")
+
+    db = get_database()
+    now = datetime.now(timezone.utc)
+    session = await db.sessions.find_one({"token": token, "expires_at": {"$gt": now}})
+    if not session or session.get("company_id") != company_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session invalide pour cette entreprise.")
+
+    user = await db.users.find_one({"_id": session["user_id"], "company_id": company_id})
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Utilisateur de session introuvable.")
+    return user
+
+
+async def require_admin(user: dict = Depends(require_authenticated_user)) -> dict:
+    """Refuse les opérations réservées aux administrateurs d'entreprise."""
+    if user.get("role") != "ADMIN":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Action réservée à un administrateur.")
+    return user
+
+

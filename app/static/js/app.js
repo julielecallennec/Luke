@@ -188,11 +188,13 @@ const LukeApp = {
     }
   },
 
-  quickLogin(email, password) {
+  quickLogin(email, password, companySlug = "") {
     const emailInput = document.getElementById("login-email");
     const passInput = document.getElementById("login-password");
+    const slugInput = document.getElementById("login-company-slug");
     if (emailInput) emailInput.value = email;
     if (passInput) passInput.value = password;
+    if (slugInput) slugInput.value = companySlug;
     this.handleLogin();
   },
 

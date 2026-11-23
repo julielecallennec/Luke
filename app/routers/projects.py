@@ -7,7 +7,7 @@ from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from app.database import get_database, serialize_doc, serialize_docs
-from app.dependencies import get_current_company_id, parse_object_id
+from app.dependencies import get_current_company_id, parse_object_id, require_admin
 from app.models.project import ProjectCreate, ProjectResponse, ProjectUpdate
 
 router = APIRouter(prefix="/api/projects", tags=["Projets (Projects)"])
@@ -57,7 +57,7 @@ async def list_projects(company_id: ObjectId = Depends(get_current_company_id)):
     return enriched
 
 
-@router.post("", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
 async def create_project(
     project_in: ProjectCreate,
     company_id: ObjectId = Depends(get_current_company_id)
@@ -279,7 +279,7 @@ async def export_project(
     )
 
 
-@router.put("/{project_id}", response_model=ProjectResponse)
+@router.put("/{project_id}", response_model=ProjectResponse, dependencies=[Depends(require_admin)])
 async def update_project(
     project_id: str,
     project_in: ProjectUpdate,
@@ -331,7 +331,7 @@ async def update_project(
     return await enrich_project(updated, db)
 
 
-@router.delete("/{project_id}", status_code=status.HTTP_200_OK)
+@router.delete("/{project_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(require_admin)])
 async def delete_project(
     project_id: str,
     company_id: ObjectId = Depends(get_current_company_id)

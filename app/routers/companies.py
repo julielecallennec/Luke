@@ -2,11 +2,11 @@ import re
 from datetime import datetime, timezone
 from typing import List
 from bson import ObjectId
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pymongo.errors import DuplicateKeyError
 
 from app.database import get_database, serialize_doc, serialize_docs
-from app.dependencies import parse_object_id
+from app.dependencies import parse_object_id, require_admin
 from app.models.company import CompanyCreate, CompanyResponse, CompanyUpdate
 
 router = APIRouter(prefix="/api/companies", tags=["Entreprises (Companies)"])
@@ -104,12 +104,14 @@ async def get_company(company_id: str):
 
 
 @router.put("/{company_id}", response_model=CompanyResponse)
-async def update_company(company_id: str, company_in: CompanyUpdate):
+async def update_company(company_id: str, company_in: CompanyUpdate, admin: dict = Depends(require_admin)):
     """
     Met à jour les informations d'une entreprise.
     """
     db = get_database()
     cid = parse_object_id(company_id, "company_id")
+    if admin["company_id"] != cid:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Vous ne pouvez gérer que votre entreprise.")
 
     update_fields = {}
     if company_in.name is not None:
@@ -151,13 +153,15 @@ async def update_company(company_id: str, company_in: CompanyUpdate):
 
 
 @router.delete("/{company_id}", status_code=status.HTTP_200_OK)
-async def delete_company(company_id: str):
+async def delete_company(company_id: str, admin: dict = Depends(require_admin)):
     """
     Suppression en cascade d'une entreprise et de toutes ses entités :
     Supprime tous ses projets, utilisateurs et tâches associées (company_id).
     """
     db = get_database()
     cid = parse_object_id(company_id, "company_id")
+    if admin["company_id"] != cid:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Vous ne pouvez gérer que votre entreprise.")
 
     # Vérification de l'existence
     comp = await db.companies.find_one({"_id": cid})

@@ -101,13 +101,21 @@
 
         <!-- Boutons 1-clic Démo -->
         <div class="grid grid-cols-2 gap-2 text-left">
-          <button type="button" onclick="LukeApp.quickLogin('alice@agence-creative.fr', 'alice123')" class="p-2.5 rounded-xl bg-slate-800/70 hover:bg-slate-800 border border-slate-700/80 transition flex flex-col group">
+          <button type="button" onclick="LukeApp.quickLogin('alice@agence-creative.fr', 'alice123', 'agence-web-creative')" class="p-2.5 rounded-xl bg-slate-800/70 hover:bg-slate-800 border border-slate-700/80 transition flex flex-col group">
             <span class="text-xs font-bold text-white group-hover:text-indigo-300">Alice Martin</span>
             <span class="text-[10px] text-slate-400">Agence Web (Admin)</span>
           </button>
-          <button type="button" onclick="LukeApp.quickLogin('david@technova.io', 'david123')" class="p-2.5 rounded-xl bg-slate-800/70 hover:bg-slate-800 border border-slate-700/80 transition flex flex-col group">
+          <button type="button" onclick="LukeApp.quickLogin('david@technova.io', 'david123', 'technova-solutions')" class="p-2.5 rounded-xl bg-slate-800/70 hover:bg-slate-800 border border-slate-700/80 transition flex flex-col group">
             <span class="text-xs font-bold text-white group-hover:text-indigo-300">David Moreau</span>
             <span class="text-[10px] text-slate-400">TechNova (Admin)</span>
+          </button>
+          <button type="button" onclick="LukeApp.quickLogin('bob@agence-creative.fr', 'bob123', 'agence-web-creative')" class="p-2.5 rounded-xl bg-slate-800/70 hover:bg-slate-800 border border-slate-700/80 transition flex flex-col group">
+            <span class="text-xs font-bold text-white group-hover:text-emerald-300">Bob Dupont</span>
+            <span class="text-[10px] text-slate-400">Agence Web (Membre)</span>
+          </button>
+          <button type="button" onclick="LukeApp.quickLogin('emma@technova.io', 'emma123', 'technova-solutions')" class="p-2.5 rounded-xl bg-slate-800/70 hover:bg-slate-800 border border-slate-700/80 transition flex flex-col group">
+            <span class="text-xs font-bold text-white group-hover:text-pink-300">Emma Leroy</span>
+            <span class="text-[10px] text-slate-400">TechNova (Membre)</span>
           </button>
         </div>
       </div>
@@ -196,7 +204,7 @@
   <!-- 1. HEADER PRINCIPAL (WORKSPACE SWITCHER, TABS, ROLE SWITCHER)         -->
   <!-- ===================================================================== -->
   <header class="border-b border-slate-800/80 bg-slate-900/90 backdrop-blur-md sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <div class="w-full max-w-[1800px] mx-auto px-4 sm:px-6 xl:px-8 h-16 flex items-center justify-between">
       
       <!-- Logo & Workspace Switcher -->
       <div class="flex items-center space-x-4 sm:space-x-6">
@@ -327,7 +335,7 @@
   <!-- ===================================================================== -->
   <!-- 2. CONTENU PRINCIPAL                                                 -->
   <!-- ===================================================================== -->
-  <main id="main-app-content" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  <main id="main-app-content" class="flex-1 w-full max-w-[1800px] mx-auto px-4 sm:px-6 xl:px-8 py-6">
 
     <!-- BARRE PROJET PRINCIPALE (COMMUNE KANBAN & LISTE) -->
     <section id="project-main-bar" class="glass-panel rounded-2xl p-4 sm:p-5 shadow-xl mb-6 border border-slate-800/80">

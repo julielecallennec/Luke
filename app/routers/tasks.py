@@ -5,7 +5,7 @@ from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.database import get_database, serialize_doc, serialize_docs
-from app.dependencies import get_current_company_id, get_current_user_id, parse_object_id
+from app.dependencies import get_current_company_id, get_current_user_id, parse_object_id, require_authenticated_user
 from app.models.task import (
     SubTask,
     SubTaskCreate,
@@ -94,7 +94,7 @@ async def list_tasks(
     return enriched
 
 
-@router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_authenticated_user)])
 async def create_task(
     task_in: TaskCreate,
     company_id: ObjectId = Depends(get_current_company_id)
@@ -186,7 +186,7 @@ async def get_task(
     return await enrich_task(task, db)
 
 
-@router.put("/{task_id}", response_model=TaskResponse)
+@router.put("/{task_id}", response_model=TaskResponse, dependencies=[Depends(require_authenticated_user)])
 async def update_task(
     task_id: str,
     task_in: TaskUpdate,
@@ -262,7 +262,7 @@ async def update_task(
     return await enrich_task(updated, db)
 
 
-@router.patch("/{task_id}/move", response_model=TaskResponse)
+@router.patch("/{task_id}/move", response_model=TaskResponse, dependencies=[Depends(require_authenticated_user)])
 async def move_task(
     task_id: str,
     move_in: TaskMove,
@@ -358,7 +358,7 @@ async def move_task(
 # NOUVELLES FONCTIONNALITÉS SAAS : SOUS-TÂCHES, COMMENTAIRES & DUPLICATION
 # =============================================================================
 
-@router.post("/{task_id}/duplicate", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/{task_id}/duplicate", response_model=TaskResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_authenticated_user)])
 async def duplicate_task(
     task_id: str,
     company_id: ObjectId = Depends(get_current_company_id)
@@ -414,7 +414,7 @@ async def duplicate_task(
     return await enrich_task(new_task, db)
 
 
-@router.post("/{task_id}/subtasks", response_model=TaskResponse)
+@router.post("/{task_id}/subtasks", response_model=TaskResponse, dependencies=[Depends(require_authenticated_user)])
 async def add_subtask(
     task_id: str,
     subtask_in: SubTaskCreate,
@@ -447,7 +447,7 @@ async def add_subtask(
     return await enrich_task(updated, db)
 
 
-@router.patch("/{task_id}/subtasks/{subtask_id}", response_model=TaskResponse)
+@router.patch("/{task_id}/subtasks/{subtask_id}", response_model=TaskResponse, dependencies=[Depends(require_authenticated_user)])
 async def toggle_subtask(
     task_id: str,
     subtask_id: str,
@@ -491,7 +491,7 @@ async def toggle_subtask(
     return await enrich_task(updated, db)
 
 
-@router.delete("/{task_id}/subtasks/{subtask_id}", response_model=TaskResponse)
+@router.delete("/{task_id}/subtasks/{subtask_id}", response_model=TaskResponse, dependencies=[Depends(require_authenticated_user)])
 async def delete_subtask(
     task_id: str,
     subtask_id: str,
@@ -518,7 +518,7 @@ async def delete_subtask(
     return await enrich_task(updated, db)
 
 
-@router.post("/{task_id}/comments", response_model=TaskResponse)
+@router.post("/{task_id}/comments", response_model=TaskResponse, dependencies=[Depends(require_authenticated_user)])
 async def add_task_comment(
     task_id: str,
     comment_in: TaskCommentCreate,
@@ -565,7 +565,7 @@ async def add_task_comment(
     return await enrich_task(updated, db)
 
 
-@router.delete("/{task_id}/comments/{comment_id}", response_model=TaskResponse)
+@router.delete("/{task_id}/comments/{comment_id}", response_model=TaskResponse, dependencies=[Depends(require_authenticated_user)])
 async def delete_task_comment(
     task_id: str,
     comment_id: str,
@@ -592,7 +592,7 @@ async def delete_task_comment(
     return await enrich_task(updated, db)
 
 
-@router.delete("/{task_id}", status_code=status.HTTP_200_OK)
+@router.delete("/{task_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(require_authenticated_user)])
 async def delete_task(
     task_id: str,
     company_id: ObjectId = Depends(get_current_company_id)
