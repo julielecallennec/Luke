@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 from bson import ObjectId
@@ -15,7 +16,7 @@ db: Optional[AsyncIOMotorDatabase] = None
 def get_client() -> AsyncIOMotorClient:
     global client
     if client is None:
-        client = AsyncIOMotorClient(settings.MONGO_URI)
+        client = AsyncIOMotorClient(settings.MONGO_URI, serverSelectionTimeoutMS=5000)
     return client
 
 
@@ -32,6 +33,17 @@ def get_database() -> AsyncIOMotorDatabase:
         except Exception:
             db = c["luke_db"]
     return db
+
+
+def connect() -> None:
+    get_database()
+
+
+def close() -> None:
+    global client
+    if client:
+        client.close()
+        client = None
 
 
 async def ping_database_with_retry(max_retries: int = 15, delay_seconds: float = 1.0) -> bool:
@@ -55,35 +67,44 @@ async def ping_database_with_retry(max_retries: int = 15, delay_seconds: float =
     return False
 
 
-async def init_indexes(database: AsyncIOMotorDatabase) -> None:
+async def init_indexes(database: Optional[AsyncIOMotorDatabase] = None) -> None:
     """
     Crée automatiquement les index obligatoires au démarrage :
     - companies : { slug: 1 } (Unique)
     - users     : { company_id: 1, email: 1 } (Unique)
     - projects  : { company_id: 1, member_ids: 1 }
     - tasks     : { company_id: 1, project_id: 1, status: 1, position: 1 }
+    - tasks     : { company_id: 1, assignee_id: 1 }
     """
+    target_db = database or get_database()
     try:
         # Index unique sur le slug d'entreprise
-        await database.companies.create_index([("slug", 1)], unique=True)
+        await target_db.companies.create_index([("slug", 1)], unique=True)
 
         # Index unique sur l'email par entreprise
-        await database.users.create_index([("company_id", 1), ("email", 1)], unique=True)
+        await target_db.users.create_index([("company_id", 1), ("email", 1)], unique=True)
 
         # Index composé sur les membres d'un projet par entreprise
-        await database.projects.create_index([("company_id", 1), ("member_ids", 1)])
+        await target_db.projects.create_index([("company_id", 1), ("member_ids", 1)])
 
         # Index composé couvrant l'affichage Kanban par entreprise, projet, statut et position
-        await database.tasks.create_index([
+        await target_db.tasks.create_index([
             ("company_id", 1),
             ("project_id", 1),
             ("status", 1),
             ("position", 1)
         ])
 
+        # Index sur l'assigné par entreprise
+        await target_db.tasks.create_index([("company_id", 1), ("assignee_id", 1)])
+
         logger.info("Index MongoDB initialisés avec succès.")
     except Exception as exc:
         logger.error(f"Erreur lors de la création des index MongoDB : {exc}")
+
+
+async def ensure_indexes() -> None:
+    await init_indexes()
 
 
 def serialize_doc(doc: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:

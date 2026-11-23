@@ -1,7 +1,9 @@
 import hashlib
 import logging
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from app.database import get_database
 
 logger = logging.getLogger("luke.seed")
 
@@ -11,11 +13,12 @@ def hash_pw(pw: str) -> str:
     return hashlib.sha256((salt + pw).encode("utf-8")).hexdigest()
 
 
-async def seed_demo_data(db: AsyncIOMotorDatabase) -> None:
+async def seed_demo_data(database: Optional[AsyncIOMotorDatabase] = None) -> None:
     """
     Insère automatiquement deux entreprises complètes de démonstration
     si la base de données est vide au démarrage.
     """
+    db = database or get_database()
     existing_companies = await db.companies.count_documents({})
     if existing_companies > 0:
         logger.info(f"Base de données déjà initialisée ({existing_companies} entreprises trouvées). Pas de seed nécessaire.")
@@ -197,7 +200,7 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> None:
             "priority": "MEDIUM",
             "position": 0,
             "tags": ["Audit", "Qualité"],
-            "due_date": now - timedelta(days=1),  # En retard pour montrer l'indicateur visuel
+            "due_date": now - timedelta(days=1),
             "subtasks": [
                 {"id": "st301", "title": "Lighthouse score > 95", "done": True},
                 {"id": "st302", "title": "Vérification balises aria-label", "done": False}
@@ -329,7 +332,7 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> None:
             "email": "david@technova.io",
             "password_hash": hash_pw("david123"),
             "role": "ADMIN",
-            "avatar_color": "#8B5CF6",  # Violet
+            "avatar_color": "#8B5CF6",
             "created_at": now - timedelta(days=45)
         },
         {
@@ -338,7 +341,7 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> None:
             "email": "emma@technova.io",
             "password_hash": hash_pw("emma123"),
             "role": "MEMBER",
-            "avatar_color": "#EC4899",  # Rose
+            "avatar_color": "#EC4899",
             "created_at": now - timedelta(days=40)
         }
     ]
@@ -427,3 +430,8 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> None:
     await db.tasks.insert_many(tasks_c2)
 
     logger.info("Données de démonstration injectées avec succès (2 entreprises, 5 utilisateurs, 3 projets, 12 tâches avec sous-tâches & commentaires).")
+
+
+async def seed_demo() -> None:
+    """Alias pour compatibilité."""
+    await seed_demo_data()

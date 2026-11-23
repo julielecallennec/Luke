@@ -2,7 +2,7 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Installation des dépendances système nécessaires
+# Installation des dépendances système si nécessaire
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
@@ -11,11 +11,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copie du code source de l'application
+# Copie du code source complet
 COPY . .
 
 # Exposition du port de l'application FastAPI
 EXPOSE 8000
 
-# Commande de lancement (le rechargement à chaud est activé pour le dev)
+# Commande de lancement
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

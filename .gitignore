@@ -1,9 +1,21 @@
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
-*.env
+*.so
+.Python
+
+# Environments
+.env
+.venv/
+venv/
+ENV/
+
+# Testing & Coverage
 .pytest_cache/
 .coverage
 htmlcov/
+
+# OS
 .DS_Store
 Thumbs.db
