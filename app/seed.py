@@ -5,6 +5,8 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.database import get_database
 from app.services.security import hash_password as hash_pw
 
+logger = logging.getLogger("luke.seed")
+
 
 async def seed_demo_data(database: Optional[AsyncIOMotorDatabase] = None) -> None:
     """
