@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Luke - SaaS Agile Kanban & Multi-Tenant</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              900: '#312e81'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- SortableJS CDN pour Drag & Drop fluide -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+
+  <!-- Styles personnalisés -->
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
+
+  <!-- ===================================================================== -->
+  <!-- 1. HEADER PRINCIPAL (WORKSPACE SWITCHER, TABS, ROLE SWITCHER)         -->
+  <!-- ===================================================================== -->
+  <header class="border-b border-slate-800/80 bg-slate-900/90 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Logo & Workspace Switcher -->
+      <div class="flex items-center space-x-4 sm:space-x-6">
+        <!-- Logo Luke -->
+        <a href="/" class="flex items-center space-x-2.5 group">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-600/30 group-hover:scale-105 transition-transform duration-200">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+            </svg>
+          </div>
+          <span class="text-lg font-black tracking-tight text-white group-hover:text-indigo-300 transition">Luke<span class="text-indigo-400">.</span></span>
+        </a>
+
+        <!-- Séparateur vertical -->
+        <div class="h-6 w-px bg-slate-800 hidden sm:block"></div>
+
+        <!-- WORKSPACE SWITCHER DROPDOWN -->
+        <div class="relative">
+          <button id="header-company-btn" type="button" class="flex items-center space-x-2.5 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-200 transition shadow-sm">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 shadow shadow-emerald-400/50"></span>
+            <span id="header-company-name" class="max-w-[120px] sm:max-w-[180px] truncate">Chargement...</span>
+            <span id="header-company-plan" class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-indigo-900/60 text-indigo-300 border border-indigo-500/30">PRO</span>
+            <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+
+          <!-- Menu Déroulant Entreprises -->
+          <div id="companies-dropdown-menu" class="hidden absolute left-0 mt-2 w-72 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-2 z-50 animate-fade-in">
+            <div class="px-2 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800 mb-1 flex items-center justify-between">
+              <span>Organisations SaaS</span>
+              <span class="text-[9px] text-emerald-400 font-normal">Isolation multi-tenant</span>
+            </div>
+            <div id="companies-dropdown-list" class="space-y-1 max-h-56 overflow-y-auto">
+              <!-- Rempli par JavaScript -->
+            </div>
+            <div class="border-t border-slate-800 pt-1.5 mt-1.5 flex flex-col space-y-1">
+              <button onclick="LukeApp.openNewCompanyModal()" class="w-full text-left px-3 py-1.5 rounded-lg text-xs font-semibold text-indigo-400 hover:bg-slate-800 transition flex items-center space-x-2">
+                <span>+ Nouvelle entreprise</span>
+              </button>
+              <div class="flex items-center justify-between px-3 py-1">
+                <button onclick="LukeApp.openEditCurrentCompanyModal()" class="text-[11px] text-slate-400 hover:text-slate-200">Paramètres</button>
+                <button onclick="LukeApp.confirmDeleteCurrentCompany()" class="text-[11px] text-rose-400 hover:text-rose-300">Supprimer workspace</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation par Onglets Principaux -->
+      <nav class="hidden md:flex items-center space-x-1 bg-slate-950/70 p-1 rounded-xl border border-slate-800/80">
+        <button id="tab-btn-kanban" onclick="LukeApp.switchTab('kanban')" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white shadow-sm transition">
+          Tableau Kanban
+        </button>
+        <button id="tab-btn-list" onclick="LukeApp.switchTab('list')" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition">
+          Vue Liste
+        </button>
+        <button id="tab-btn-projects" onclick="LukeApp.switchTab('projects')" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition">
+          Projets
+        </button>
+        <button id="tab-btn-team" onclick="LukeApp.switchTab('team')" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition">
+          Équipe & Rôles
+        </button>
+        <button id="tab-btn-architecture" onclick="LukeApp.switchTab('architecture')" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition flex items-center space-x-1.5">
+          <span>Architecture & Sharding</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+        </button>
+      </nav>
+
+      <!-- Actions Droite : Webhook, Shortcuts, Role Switcher -->
+      <div class="flex items-center space-x-2.5">
+        
+        <!-- Raccourcis clavier help button -->
+        <button onclick="LukeApp.openShortcutsModal()" class="hidden sm:flex items-center justify-center w-8 h-8 rounded-lg bg-slate-800/70 hover:bg-slate-800 border border-slate-700/70 text-slate-400 hover:text-slate-200 text-xs font-bold transition" title="Raccourcis clavier (?)">
+          ?
+        </button>
+
+        <!-- Bouton Discord Webhook -->
+        <button id="btn-test-discord" onclick="LukeApp.testDiscordWebhook()" class="hidden sm:flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-indigo-950/60 hover:bg-indigo-900/70 border border-indigo-500/30 text-indigo-300 text-xs font-semibold transition" title="Tester le webhook Discord du SAE">
+          <span>🔔</span>
+          <span class="hidden xl:inline">Test Webhook</span>
+        </button>
+
+        <!-- USER & ROLE SWITCHER DROPDOWN -->
+        <div class="relative">
+          <button id="header-user-btn" type="button" class="flex items-center space-x-2.5 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 px-2.5 py-1.5 rounded-xl text-xs font-medium text-slate-200 transition shadow-sm">
+            <div id="header-user-avatar" class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow" style="background-color: #4F46E5;">
+              AM
+            </div>
+            <div class="hidden sm:block text-left">
+              <span id="header-user-name" class="block font-semibold truncate max-w-[110px]">Alice Martin</span>
+            </div>
+            <span id="header-user-role" class="text-[10px] font-bold px-1.5 py-0.2 rounded-full uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">ADMIN</span>
+            <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+
+          <!-- Menu Déroulant Rôles & Membres -->
+          <div id="users-dropdown-menu" class="hidden absolute right-0 mt-2 w-64 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-2 z-50 animate-fade-in">
+            <div class="px-2 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800 mb-1 flex items-center justify-between">
+              <span>Simulateur de profil</span>
+              <span class="text-[9px] text-indigo-400 lowercase">démontre l'isolation</span>
+            </div>
+            <div id="users-dropdown-list" class="space-y-1 max-h-56 overflow-y-auto">
+              <!-- Rempli par JavaScript -->
+            </div>
+            <div class="border-t border-slate-800 pt-1.5 mt-1.5">
+              <button onclick="LukeApp.openNewUserModal()" class="w-full text-left px-3 py-1.5 rounded-lg text-xs font-semibold text-indigo-400 hover:bg-slate-800 transition flex items-center space-x-2">
+                <span>+ Inviter un collaborateur</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ===================================================================== -->
+  <!-- 2. CONTENU PRINCIPAL                                                 -->
+  <!-- ===================================================================== -->
+  <main id="main-app-content" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- BARRE PROJET PRINCIPALE (COMMUNE KANBAN & LISTE) -->
+    <section id="project-main-bar" class="glass-panel rounded-2xl p-4 sm:p-5 shadow-xl mb-6 border border-slate-800/80">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        
+        <!-- Sélecteur de Projet & Infos -->
+        <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div class="flex items-center space-x-2">
+            <select id="project-select" onchange="LukeApp.onProjectSelectChange(this.value)" class="bg-slate-800 border border-slate-700 text-slate-100 text-sm font-bold rounded-xl px-3.5 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer">
+              <!-- Rempli par JS -->
+            </select>
+            <button onclick="LukeApp.openNewProjectModal()" class="p-2 bg-slate-800 hover:bg-slate-700 text-indigo-400 border border-slate-700 rounded-xl transition" title="Nouveau Projet">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            </button>
+          </div>
+
+          <div class="hidden sm:block h-6 w-px bg-slate-800"></div>
+
+          <!-- Titre et description résumée -->
+          <div>
+            <div class="flex items-center space-x-2">
+              <h2 id="project-title-display" class="text-sm font-bold text-slate-100">Chargement...</h2>
+              <span id="project-status-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">ACTIVE</span>
+            </div>
+            <p id="project-desc-display" class="text-xs text-slate-400 max-w-md truncate mt-0.5">...</p>
+          </div>
+        </div>
+
+        <!-- Avancement & Actions Rapides -->
+        <div class="flex items-center space-x-3 sm:space-x-5 flex-wrap gap-y-2">
+          
+          <!-- Équipe du projet -->
+          <div class="hidden md:flex items-center">
+            <div id="project-members-display" class="flex items-center -space-x-2">
+              <!-- Avatars ronds par JS -->
+            </div>
+          </div>
+
+          <!-- Jauge d'avancement -->
+          <div class="flex flex-col min-w-[170px] sm:min-w-[210px]">
+            <div class="flex items-center justify-between text-xs font-semibold mb-1">
+              <span class="text-slate-400">Progression</span>
+              <span id="progress-text-display" class="text-indigo-400 font-mono">0% complété</span>
+            </div>
+            <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden p-0.5 border border-slate-700/60">
+              <div id="progress-bar-fill" class="h-full rounded-full bg-indigo-500 transition-all duration-500" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <!-- Bouton Analytics Toggle -->
+          <button onclick="LukeApp.toggleAnalyticsDrawer()" class="p-2 sm:px-3 sm:py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition" title="Voir les statistiques du projet">
+            <span>📊</span>
+            <span class="hidden sm:inline">Métriques</span>
+          </button>
+
+          <!-- Bouton Export Dropdown -->
+          <div class="relative">
+            <button onclick="LukeApp.toggleExportDropdown()" class="p-2 sm:px-3 sm:py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition" title="Exporter les données">
+              <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              <span class="hidden sm:inline">Export</span>
+            </button>
+            <div id="export-dropdown-menu" class="hidden absolute right-0 mt-2 w-44 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-1.5 z-50 animate-fade-in text-xs">
+              <button onclick="LukeApp.exportProject('csv')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-200 flex items-center space-x-2">
+                <span>📄</span>
+                <span>Exporter en CSV</span>
+              </button>
+              <button onclick="LukeApp.exportProject('json')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-200 flex items-center space-x-2">
+                <span>📦</span>
+                <span>Exporter en JSON</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Bouton Nouvelle Tâche -->
+          <button onclick="LukeApp.openNewTaskModal()" class="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/30 flex items-center space-x-1.5 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            <span>Nouvelle Tâche</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- TIROIR ANALYTICS & STATISTIQUES AVANCÉES (DÉPLIABLE) -->
+      <div id="analytics-drawer" class="hidden mt-4 pt-4 border-t border-slate-800/80 animate-fade-in">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+          <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Tâches</span>
+            <div id="stats-total" class="text-xl font-bold font-mono text-white mt-0.5">0</div>
+          </div>
+          <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-400">En cours / Révision</span>
+            <div id="stats-active" class="text-xl font-bold font-mono text-indigo-300 mt-0.5">0</div>
+          </div>
+          <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Terminées</span>
+            <div id="stats-done" class="text-xl font-bold font-mono text-emerald-300 mt-0.5">0</div>
+          </div>
+          <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-rose-400">En retard</span>
+            <div id="stats-overdue" class="text-xl font-bold font-mono text-rose-400 mt-0.5">0</div>
+          </div>
+        </div>
+        <div id="analytics-workload-container" class="bg-slate-950/50 p-3 rounded-xl border border-slate-800/80 text-xs">
+          <span class="text-[11px] font-bold text-slate-300 uppercase tracking-wide block mb-2">Répartition de la charge par membre :</span>
+          <div id="analytics-workload-bars" class="space-y-2">
+            <!-- Rempli dynamiquement -->
+          </div>
+        </div>
+      </div>
+
+      <!-- FILTRES RAPIDES KANBAN & RECHERCHE -->
+      <div class="mt-4 pt-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Bouton "Mes tâches" -->
+          <button id="btn-my-tasks" onclick="LukeApp.toggleMyTasksFilter()" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center space-x-1.5">
+            <span>🎯</span>
+            <span>Mes tâches</span>
+          </button>
+
+          <!-- Filtre Collaborateur -->
+          <select id="filter-assignee" onchange="LukeApp.onFilterChange()" class="bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-2.5 py-1.5 focus:ring-1 focus:ring-indigo-500 cursor-pointer">
+            <option value="">Tous les collaborateurs</option>
+          </select>
+
+          <!-- Filtre Priorité -->
+          <select id="filter-priority" onchange="LukeApp.onFilterChange()" class="bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-2.5 py-1.5 focus:ring-1 focus:ring-indigo-500 cursor-pointer">
+            <option value="">Toutes les priorités</option>
+            <option value="HIGH">Urgent (HIGH)</option>
+            <option value="MEDIUM">Moyenne (MEDIUM)</option>
+            <option value="LOW">Basse (LOW)</option>
+          </select>
+
+          <!-- Filtre Tag Actif (Badge) -->
+          <span id="active-tag-filter" class="hidden items-center space-x-1 px-2.5 py-1 rounded-lg bg-indigo-900/60 text-indigo-300 border border-indigo-500/40 text-xs">
+            <span id="active-tag-name">Tag</span>
+            <button onclick="LukeApp.clearTagFilter()" class="hover:text-white ml-1">&times;</button>
+          </span>
+
+          <!-- Bouton Réinitialiser -->
+          <button onclick="LukeApp.resetFilters()" class="text-xs text-slate-400 hover:text-slate-200 px-2 py-1 rounded transition">
+            Réinitialiser
+          </button>
+        </div>
+
+        <!-- Champ Recherche mot-clé -->
+        <div class="relative w-full sm:w-64">
+          <input id="search-input" type="text" placeholder="Filtrer titre, tags, desc... (F)" class="w-full bg-slate-950/80 border border-slate-800 text-slate-100 text-xs rounded-lg pl-8 pr-3 py-1.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          <svg class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- ONGLET 1 : TABLEAU KANBAN                                           -->
+    <!-- =================================================================== -->
+    <div id="tab-content-kanban" class="space-y-5 animate-fade-in">
+      
+      <!-- TABLEAU KANBAN (4 COLONNES AVEC DRAG & DROP) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
+        
+        <!-- COLONNE 1 : À FAIRE (TODO) -->
+        <div class="glass-panel kanban-col-todo rounded-2xl p-3.5 shadow-md flex flex-col">
+          <div class="flex items-center justify-between mb-3 px-1">
+            <div class="flex items-center space-x-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+              <h3 class="text-xs font-bold tracking-wide uppercase text-slate-300">À faire</h3>
+              <span id="count-TODO" class="text-xs font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">0</span>
+            </div>
+            <button onclick="LukeApp.openNewTaskModal('TODO')" class="p-1 hover:bg-slate-800 text-slate-400 hover:text-white rounded transition" title="Ajouter une tâche">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            </button>
+          </div>
+          <!-- Dropzone SortableJS -->
+          <div id="column-TODO" data-status="TODO" class="kanban-dropzone space-y-2.5">
+            <!-- Cartes injectées par JS -->
+          </div>
+          <!-- Ajout rapide au pied de colonne -->
+          <div class="mt-2 pt-2 border-t border-slate-800/80">
+            <button onclick="LukeApp.showInlineAdd('TODO')" id="inline-btn-TODO" class="w-full py-1.5 px-2 rounded-lg text-xs text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition flex items-center justify-center space-x-1">
+              <span>+</span><span>Ajouter une carte</span>
+            </button>
+            <div id="inline-box-TODO" class="hidden mt-1 space-y-2">
+              <input type="text" id="inline-input-TODO" placeholder="Titre de la tâche..." class="w-full bg-slate-800 border border-slate-700 text-xs text-white rounded-lg px-2.5 py-1.5 focus:ring-1 focus:ring-indigo-500 focus:outline-none" onkeydown="if(event.key==='Enter') LukeApp.submitInlineAdd('TODO')">
+              <div class="flex items-center justify-end space-x-1.5">
+                <button onclick="LukeApp.hideInlineAdd('TODO')" class="px-2 py-1 text-[11px] text-slate-400 hover:text-slate-200">Annuler</button>
+                <button onclick="LukeApp.submitInlineAdd('TODO')" class="px-2.5 py-1 text-[11px] bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium">Ajouter</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COLONNE 2 : EN COURS (IN_PROGRESS) -->
+        <div class="glass-panel kanban-col-in_progress rounded-2xl p-3.5 shadow-md flex flex-col">
+          <div class="flex items-center justify-between mb-3 px-1">
+            <div class="flex items-center space-x-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow shadow-indigo-500/50"></span>
+              <h3 class="text-xs font-bold tracking-wide uppercase text-indigo-300">En cours</h3>
+              <span id="count-IN_PROGRESS" class="text-xs font-mono px-2 py-0.5 rounded-full bg-indigo-950/60 text-indigo-300 border border-indigo-800/40">0</span>
+            </div>
+            <button onclick="LukeApp.openNewTaskModal('IN_PROGRESS')" class="p-1 hover:bg-slate-800 text-slate-400 hover:text-white rounded transition" title="Ajouter une tâche">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            </button>
+          </div>
+          <!-- Dropzone SortableJS -->
+          <div id="column-IN_PROGRESS" data-status="IN_PROGRESS" class="kanban-dropzone space-y-2.5">
+            <!-- Cartes injectées par JS -->
+          </div>
+          <!-- Ajout rapide au pied de colonne -->
+          <div class="mt-2 pt-2 border-t border-slate-800/80">
+            <button onclick="LukeApp.showInlineAdd('IN_PROGRESS')" id="inline-btn-IN_PROGRESS" class="w-full py-1.5 px-2 rounded-lg text-xs text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition flex items-center justify-center space-x-1">
+              <span>+</span><span>Ajouter une carte</span>
+            </button>
+            <div id="inline-box-IN_PROGRESS" class="hidden mt-1 space-y-2">
+              <input type="text" id="inline-input-IN_PROGRESS" placeholder="Titre de la tâche..." class="w-full bg-slate-800 border border-slate-700 text-xs text-white rounded-lg px-2.5 py-1.5 focus:ring-1 focus:ring-indigo-500 focus:outline-none" onkeydown="if(event.key==='Enter') LukeApp.submitInlineAdd('IN_PROGRESS')">
+              <div class="flex items-center justify-end space-x-1.5">
+                <button onclick="LukeApp.hideInlineAdd('IN_PROGRESS')" class="px-2 py-1 text-[11px] text-slate-400 hover:text-slate-200">Annuler</button>
+                <button onclick="LukeApp.submitInlineAdd('IN_PROGRESS')" class="px-2.5 py-1 text-[11px] bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium">Ajouter</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COLONNE 3 : EN RÉVISION (IN_REVIEW) -->
+        <div class="glass-panel kanban-col-in_review rounded-2xl p-3.5 shadow-md flex flex-col">
+          <div class="flex items-center justify-between mb-3 px-1">
+            <div class="flex items-center space-x-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow shadow-amber-500/50"></span>
+              <h3 class="text-xs font-bold tracking-wide uppercase text-amber-300">En révision</h3>
+              <span id="count-IN_REVIEW" class="text-xs font-mono px-2 py-0.5 rounded-full bg-amber-950/60 text-amber-300 border border-amber-800/40">0</span>
+            </div>
+            <button onclick="LukeApp.openNewTaskModal('IN_REVIEW')" class="p-1 hover:bg-slate-800 text-slate-400 hover:text-white rounded transition" title="Ajouter une tâche">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            </button>
+          </div>
+          <!-- Dropzone SortableJS -->
+          <div id="column-IN_REVIEW" data-status="IN_REVIEW" class="kanban-dropzone space-y-2.5">
+            <!-- Cartes injectées par JS -->
+          </div>
+          <!-- Ajout rapide au pied de colonne -->
+          <div class="mt-2 pt-2 border-t border-slate-800/80">
+            <button onclick="LukeApp.showInlineAdd('IN_REVIEW')" id="inline-btn-IN_REVIEW" class="w-full py-1.5 px-2 rounded-lg text-xs text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition flex items-center justify-center space-x-1">
+              <span>+</span><span>Ajouter une carte</span>
+            </button>
+            <div id="inline-box-IN_REVIEW" class="hidden mt-1 space-y-2">
+              <input type="text" id="inline-input-IN_REVIEW" placeholder="Titre de la tâche..." class="w-full bg-slate-800 border border-slate-700 text-xs text-white rounded-lg px-2.5 py-1.5 focus:ring-1 focus:ring-indigo-500 focus:outline-none" onkeydown="if(event.key==='Enter') LukeApp.submitInlineAdd('IN_REVIEW')">
+              <div class="flex items-center justify-end space-x-1.5">
+                <button onclick="LukeApp.hideInlineAdd('IN_REVIEW')" class="px-2 py-1 text-[11px] text-slate-400 hover:text-slate-200">Annuler</button>
+                <button onclick="LukeApp.submitInlineAdd('IN_REVIEW')" class="px-2.5 py-1 text-[11px] bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium">Ajouter</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COLONNE 4 : TERMINÉ (DONE) -->
+        <div class="glass-panel kanban-col-done rounded-2xl p-3.5 shadow-md flex flex-col">
+          <div class="flex items-center justify-between mb-3 px-1">
+            <div class="flex items-center space-x-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow shadow-emerald-500/50"></span>
+              <h3 class="text-xs font-bold tracking-wide uppercase text-emerald-300">Terminé</h3>
+              <span id="count-DONE" class="text-xs font-mono px-2 py-0.5 rounded-full bg-emerald-950/60 text-emerald-300 border border-emerald-800/40">0</span>
+            </div>
+            <button onclick="LukeApp.openNewTaskModal('DONE')" class="p-1 hover:bg-slate-800 text-slate-400 hover:text-white rounded transition" title="Ajouter une tâche">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            </button>
+          </div>
+          <!-- Dropzone SortableJS -->
+          <div id="column-DONE" data-status="DONE" class="kanban-dropzone space-y-2.5">
+            <!-- Cartes injectées par JS -->
+          </div>
+          <!-- Ajout rapide au pied de colonne -->
+          <div class="mt-2 pt-2 border-t border-slate-800/80">
+            <button onclick="LukeApp.showInlineAdd('DONE')" id="inline-btn-DONE" class="w-full py-1.5 px-2 rounded-lg text-xs text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition flex items-center justify-center space-x-1">
+              <span>+</span><span>Ajouter une carte</span>
+            </button>
+            <div id="inline-box-DONE" class="hidden mt-1 space-y-2">
+              <input type="text" id="inline-input-DONE" placeholder="Titre de la tâche..." class="w-full bg-slate-800 border border-slate-700 text-xs text-white rounded-lg px-2.5 py-1.5 focus:ring-1 focus:ring-indigo-500 focus:outline-none" onkeydown="if(event.key==='Enter') LukeApp.submitInlineAdd('DONE')">
+              <div class="flex items-center justify-end space-x-1.5">
+                <button onclick="LukeApp.hideInlineAdd('DONE')" class="px-2 py-1 text-[11px] text-slate-400 hover:text-slate-200">Annuler</button>
+                <button onclick="LukeApp.submitInlineAdd('DONE')" class="px-2.5 py-1 text-[11px] bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium">Ajouter</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- ONGLET 1.1 : VUE LISTE / TABLEAU (NOUVEAUTÉ SAAS)                   -->
+    <!-- =================================================================== -->
+    <div id="tab-content-list" class="hidden space-y-5 animate-fade-in">
+      <div class="glass-panel rounded-2xl overflow-hidden shadow-xl border border-slate-800/80">
+        <div class="p-4 border-b border-slate-800/80 flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-bold text-white">Vue Tableau Interactif</h3>
+            <p class="text-xs text-slate-400">Visualisez et triez toutes vos tâches sous forme de liste Notion/ClickUp.</p>
+          </div>
+          <button onclick="LukeApp.openNewTaskModal()" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition shadow">
+            + Nouvelle Tâche
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead class="bg-slate-900/80 text-slate-400 uppercase tracking-wider text-[10px] border-b border-slate-800">
+              <tr>
+                <th class="py-3 px-4 font-semibold">Tâche</th>
+                <th class="py-3 px-4 font-semibold">Statut</th>
+                <th class="py-3 px-4 font-semibold">Priorité</th>
+                <th class="py-3 px-4 font-semibold">Assigné</th>
+                <th class="py-3 px-4 font-semibold">Échéance</th>
+                <th class="py-3 px-4 font-semibold">Sous-tâches</th>
+                <th class="py-3 px-4 font-semibold text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="list-view-tbody" class="divide-y divide-slate-800/60 text-slate-200">
+              <!-- Rempli par JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- ONGLET 2 : LISTE DES PROJETS                                        -->
+    <!-- =================================================================== -->
+    <div id="tab-content-projects" class="hidden space-y-5 animate-fade-in">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-bold text-slate-100">Projets de l'organisation</h2>
+          <p class="text-xs text-slate-400">Gérez vos projets agiles, affectez des collaborateurs et suivez le pourcentage d'avancement.</p>
+        </div>
+        <button onclick="LukeApp.openNewProjectModal()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/30 flex items-center space-x-1.5 transition">
+          <span>+ Nouveau Projet</span>
+        </button>
+      </div>
+
+      <div id="projects-tab-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Rempli par JS -->
+      </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- ONGLET 3 : ÉQUIPE & RÔLES                                          -->
+    <!-- =================================================================== -->
+    <div id="tab-content-team" class="hidden space-y-5 animate-fade-in">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-bold text-slate-100">Collaborateurs & Rôles</h2>
+          <p class="text-xs text-slate-400">Gérez les membres de cette entreprise. Cliquez sur "Endosser ce rôle" pour tester les permissions ADMIN ou MEMBER.</p>
+        </div>
+        <button onclick="LukeApp.openNewUserModal()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/30 flex items-center space-x-1.5 transition">
+          <span>+ Inviter un collaborateur</span>
+        </button>
+      </div>
+
+      <div id="team-tab-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Rempli par JS -->
+      </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- ONGLET 4 : ARCHITECTURE & SHARDING (EXPLICATIONS PÉDAGOGIQUES)      -->
+    <!-- =================================================================== -->
+    <div id="tab-content-architecture" class="hidden space-y-6 animate-fade-in">
+      <div class="glass-panel rounded-2xl p-6 shadow-xl border border-slate-800/80">
+        <div class="flex items-center space-x-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center font-bold text-lg">
+            ⚡
+          </div>
+          <div>
+            <h2 class="text-lg font-bold text-slate-100">Architecture Multi-Tenant & Préparation au Sharding (Partie II)</h2>
+            <p class="text-xs text-slate-400">Démonstration de la conformité aux exigences techniques et isolation logicielle stricte.</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
+            <span class="text-[11px] text-slate-400 uppercase font-semibold">Workspace Actif (company_id)</span>
+            <div id="arch-current-cid" class="text-xs font-mono text-indigo-400 font-bold truncate mt-1">-</div>
+          </div>
+          <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
+            <span class="text-[11px] text-slate-400 uppercase font-semibold">Utilisateurs Isolés</span>
+            <div id="arch-count-users" class="text-xl font-mono text-emerald-400 font-bold mt-1">0</div>
+          </div>
+          <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
+            <span class="text-[11px] text-slate-400 uppercase font-semibold">Projets Isolés</span>
+            <div id="arch-count-projects" class="text-xl font-mono text-amber-400 font-bold mt-1">0</div>
+          </div>
+          <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
+            <span class="text-[11px] text-slate-400 uppercase font-semibold">Tâches Isolées</span>
+            <div id="arch-count-tasks" class="text-xl font-mono text-rose-400 font-bold mt-1">0</div>
+          </div>
+        </div>
+
+        <div class="space-y-4 text-xs text-slate-300 leading-relaxed">
+          <div class="p-4 bg-slate-950/60 rounded-xl border border-slate-800">
+            <h4 class="font-bold text-white mb-1 flex items-center space-x-1.5">
+              <span>🛡️ 1. Isolation Logicielle Stricte</span>
+            </h4>
+            <p>
+              Toutes les requêtes de l'API FastAPI (lecture, création, modification, suppression) exécutées sur <code class="text-indigo-300">users</code>, <code class="text-indigo-300">projects</code> et <code class="text-indigo-300">tasks</code> appliquent impérativement le filtre MongoDB <code class="text-indigo-300 font-mono">{"company_id": current_company_id}</code>. Aucune fuite inter-entreprises n'est possible, même en manipulant les identifiants d'URL.
+            </p>
+          </div>
+
+          <div class="p-4 bg-slate-950/60 rounded-xl border border-slate-800">
+            <h4 class="font-bold text-white mb-1 flex items-center space-x-1.5">
+              <span>🚀 2. Clé de Sharding & Dénormalisation stratégique</span>
+            </h4>
+            <p>
+              Le champ <code class="text-indigo-300 font-mono">company_id</code> est <strong>obligatoirement dénormalisé</strong> dans chaque document de tâche, projet et utilisateur. En Partie II, la clé de distribution composée <code class="text-indigo-300 font-mono">{ company_id: 1, _id: 1 }</code> permettra aux routeurs <code class="text-emerald-400 font-mono">mongos</code> de router 100% des requêtes d'une entreprise vers un unique Shard hébergeant ses données (<em>Targeted Queries</em> ultra-rapides sans broadcast <em>Scatter-Gather</em>).
+            </p>
+          </div>
+
+          <div class="p-4 bg-slate-950/60 rounded-xl border border-slate-800">
+            <h4 class="font-bold text-white mb-1 flex items-center space-x-1.5">
+              <span>🌐 3. Zéro IP en dur & Évolutivité sans recompilation</span>
+            </h4>
+            <p>
+              Le code source ne contient aucune adresse IP, ni port, ni nom d'hôte codé en dur. Il s'appuie exclusivement sur la variable d'environnement <code class="text-indigo-300 font-mono">MONGO_URI</code>. Passer d'une instance standalone à un cluster distribué avec réplication se fera sans retoucher une seule ligne de code Python.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- 3. MODALES ET DRAWS                                                   -->
+  <!-- ===================================================================== -->
+
+  <!-- MODALE COMPLÈTE & DÉTAILS DE TÂCHE (SOUS-TÂCHES & COMMENTAIRES) -->
+  <div id="task-modal" class="hidden fixed inset-0 z-50 items-center justify-center p-4 modal-backdrop animate-fade-in">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 shadow-2xl space-y-5">
+      
+      <!-- Header de modale -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center space-x-2">
+          <span class="w-3 h-3 rounded-full bg-indigo-500"></span>
+          <h3 id="task-modal-title" class="text-base font-bold text-white">Détails de la tâche</h3>
+        </div>
+        <button onclick="LukeApp.closeModal('task-modal')" class="text-slate-400 hover:text-white text-lg">&times;</button>
+      </div>
+
+      <form id="task-form" class="space-y-4 text-xs">
+        <input type="hidden" id="task-id-input">
+        
+        <!-- Titre -->
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Titre de la tâche *</label>
+          <input type="text" id="task-title-input" required class="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+
+        <!-- Description -->
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Description détaillée</label>
+          <textarea id="task-desc-input" rows="3" placeholder="Ajouter des notes, spécifications ou critères d'acceptation..." class="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
+        </div>
+
+        <!-- Statut & Priorité -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1">Statut (Colonne Kanban)</label>
+            <select id="task-status-input" class="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2 cursor-pointer">
+              <option value="TODO">À faire (TODO)</option>
+              <option value="IN_PROGRESS">En cours (IN_PROGRESS)</option>
+              <option value="IN_REVIEW">En révision (IN_REVIEW)</option>
+              <option value="DONE">Terminé (DONE)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1">Priorité</label>
+            <select id="task-priority-input" class="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2 cursor-pointer">
+              <option value="LOW">🟢 Basse (LOW)</option>
+              <option value="MEDIUM" selected>🟡 Moyenne (MEDIUM)</option>
+              <option value="HIGH">🔴 Urgent (HIGH)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Assigné & Échéance -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1">Collaborateur assigné</label>
+            <select id="task-assignee-input" class="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2 cursor-pointer">
+              <!-- Rempli dynamiquement -->
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1">Date d'échéance</label>
+            <input type="date" id="task-due-date-input" class="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2">
+          </div>
+        </div>
+
+        <!-- Tags -->
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Tags / Étiquettes (séparés par des virgules)</label>
+          <input type="text" id="task-tags-input" placeholder="ex: Frontend, Bug, Urgence, API" class="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2">
+        </div>
+
+        <!-- SECTION CHECKLIST / SOUS-TÂCHES -->
+        <div id="subtasks-section" class="pt-3 border-t border-slate-800">
+          <div class="flex items-center justify-between mb-2">
+            <label class="font-bold text-slate-200 flex items-center space-x-1.5">
+              <span>☑️</span>
+              <span>Sous-tâches & Critères d'acceptation</span>
+            </label>
+            <span id="subtasks-progress-badge" class="text-[11px] font-mono text-slate-400">0/0</span>
+          </div>
+
+          <!-- Barre de progression sous-tâches -->
+          <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mb-3">
+            <div id="subtasks-progress-bar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 0%"></div>
+          </div>
+
+          <!-- Liste des sous-tâches -->
+          <div id="subtasks-list" class="space-y-1.5 mb-2.5 max-h-40 overflow-y-auto">
+            <!-- Injecté par JS -->
+          </div>
+
+          <!-- Champ pour ajouter une sous-tâche -->
+          <div class="flex items-center space-x-2">
+            <input type="text" id="new-subtask-input" placeholder="Ajouter une sous-tâche... (Entrée)" class="flex-1 bg-slate-950/60 border border-slate-800 text-white rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none" onkeydown="if(event.key==='Enter'){event.preventDefault(); LukeApp.addNewSubtask();}">
+            <button type="button" onclick="LukeApp.addNewSubtask()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold">
+              Ajouter
+            </button>
+          </div>
+        </div>
+
+        <!-- SECTION COMMENTAIRES & ACTIVITÉ -->
+        <div id="comments-section" class="pt-3 border-t border-slate-800">
+          <label class="font-bold text-slate-200 flex items-center space-x-1.5 mb-2.5">
+            <span>💬</span>
+            <span>Commentaires & Échanges d'équipe</span>
+          </label>
+
+          <!-- Timeline des commentaires -->
+          <div id="comments-timeline" class="space-y-2.5 mb-3 max-h-48 overflow-y-auto pr-1">
+            <!-- Injecté par JS -->
+          </div>
+
+          <!-- Nouveau commentaire -->
+          <div class="flex flex-col space-y-2">
+            <textarea id="new-comment-input" rows="2" placeholder="Écrire un commentaire..." class="w-full bg-slate-950/60 border border-slate-800 text-white rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none"></textarea>
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] text-slate-400">Posté en tant que <strong id="commenting-as-name" class="text-indigo-400">-</strong></span>
+              <button type="button" onclick="LukeApp.submitComment()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow">
+                Publier
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer / Actions -->
+        <div class="flex items-center justify-between pt-4 border-t border-slate-800">
+          <div class="flex items-center space-x-2">
+            <button type="button" id="task-duplicate-btn" onclick="LukeApp.duplicateCurrentTask()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium transition flex items-center space-x-1">
+              <span>📋</span>
+              <span class="hidden sm:inline">Dupliquer</span>
+            </button>
+            <button type="button" id="task-delete-btn" onclick="LukeApp.deleteCurrentTaskFromModal()" class="px-3 py-2 bg-rose-950/50 hover:bg-rose-900/60 border border-rose-800/40 text-rose-300 rounded-xl text-xs font-medium transition flex items-center space-x-1">
+              <span>🗑️</span>
+              <span class="hidden sm:inline">Supprimer</span>
+            </button>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button type="button" onclick="LukeApp.closeModal('task-modal')" class="px-4 py-2 rounded-xl text-slate-400 hover:bg-slate-800">Annuler</button>
+            <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl shadow-lg shadow-indigo-600/30">Enregistrer</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODALE PROJET -->
+  <div id="project-modal" class="hidden fixed inset-0 z-50 items-center justify-center p-4 modal-backdrop animate-fade-in">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <h3 id="project-modal-title" class="text-base font-bold text-white">Nouveau Projet</h3>
+        <button onclick="LukeApp.closeModal('project-modal')" class="text-slate-400 hover:text-white">&times;</button>
+      </div>
+
+      <form id="project-form" class="space-y-3.5 text-xs">
+        <input type="hidden" id="project-id-input">
+        
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Nom du projet *</label>
+          <input type="text" id="project-name-input" required class="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Description</label>
+          <textarea id="project-desc-input" rows="2" class="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Statut</label>
+          <select id="project-status-input" class="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2">
+            <option value="ACTIVE">ACTIVE</option>
+            <option value="ARCHIVED">ARCHIVED</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Membres affectés au projet</label>
+          <div id="project-members-checkboxes" class="space-y-1.5 max-h-40 overflow-y-auto border border-slate-800 p-2 rounded-xl bg-slate-950/50">
+            <!-- Checkboxes injectées par JS -->
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-800">
+          <button type="button" onclick="LukeApp.closeModal('project-modal')" class="px-3.5 py-2 rounded-xl text-slate-400 hover:bg-slate-800">Annuler</button>
+          <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODALE UTILISATEUR -->
+  <div id="user-modal" class="hidden fixed inset-0 z-50 items-center justify-center p-4 modal-backdrop animate-fade-in">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <h3 id="user-modal-title" class="text-base font-bold text-white">Nouveau Collaborateur</h3>
+        <button onclick="LukeApp.closeModal('user-modal')" class="text-slate-400 hover:text-white">&times;</button>
+      </div>
+
+      <form id="user-form" class="space-y-3.5 text-xs">
+        <input type="hidden" id="user-id-input">
+        
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Nom complet *</label>
+          <input type="text" id="user-name-input" required class="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Email professionnel *</label>
+          <input type="email" id="user-email-input" required class="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1">Rôle</label>
+            <select id="user-role-input" class="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2">
+              <option value="MEMBER">MEMBER</option>
+              <option value="ADMIN">ADMIN</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1">Couleur d'avatar</label>
+            <input type="color" id="user-color-input" value="#4F46E5" class="w-full h-9 bg-slate-800 border border-slate-700 rounded-xl cursor-pointer px-1 py-1">
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-800">
+          <button type="button" onclick="LukeApp.closeModal('user-modal')" class="px-3.5 py-2 rounded-xl text-slate-400 hover:bg-slate-800">Annuler</button>
+          <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODALE ENTREPRISE -->
+  <div id="company-modal" class="hidden fixed inset-0 z-50 items-center justify-center p-4 modal-backdrop animate-fade-in">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <h3 id="company-modal-title" class="text-base font-bold text-white">Organisation SaaS</h3>
+        <button onclick="LukeApp.closeModal('company-modal')" class="text-slate-400 hover:text-white">&times;</button>
+      </div>
+
+      <form id="company-form" class="space-y-3.5 text-xs">
+        <input type="hidden" id="company-id-input">
+        
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Nom de l'entreprise *</label>
+          <input type="text" id="company-name-input" required class="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Slug d'URL (laisser vide pour auto-générer)</label>
+          <input type="text" id="company-slug-input" placeholder="ex: agence-web-creative" class="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Formule d'abonnement (Plan)</label>
+          <select id="company-plan-input" class="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-3 py-2">
+            <option value="FREE">FREE</option>
+            <option value="PRO" selected>PRO</option>
+            <option value="ENTERPRISE">ENTERPRISE</option>
+          </select>
+        </div>
+
+        <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-800">
+          <button type="button" onclick="LukeApp.closeModal('company-modal')" class="px-3.5 py-2 rounded-xl text-slate-400 hover:bg-slate-800">Annuler</button>
+          <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODALE RACCOURCIS CLAVIER (?) -->
+  <div id="shortcuts-modal" class="hidden fixed inset-0 z-50 items-center justify-center p-4 modal-backdrop animate-fade-in">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <h3 class="text-base font-bold text-white flex items-center space-x-2">
+          <span>⌨️</span>
+          <span>Raccourcis Clavier</span>
+        </h3>
+        <button onclick="LukeApp.closeModal('shortcuts-modal')" class="text-slate-400 hover:text-white">&times;</button>
+      </div>
+
+      <div class="space-y-2.5 text-xs text-slate-300">
+        <div class="flex items-center justify-between p-2 rounded-lg bg-slate-950/60 border border-slate-800">
+          <span>Créer une nouvelle tâche</span>
+          <kbd class="px-2 py-1 rounded bg-slate-800 border border-slate-700 font-mono font-bold text-indigo-400">N</kbd>
+        </div>
+        <div class="flex items-center justify-between p-2 rounded-lg bg-slate-950/60 border border-slate-800">
+          <span>Recherche plein texte</span>
+          <kbd class="px-2 py-1 rounded bg-slate-800 border border-slate-700 font-mono font-bold text-indigo-400">F</kbd>
+        </div>
+        <div class="flex items-center justify-between p-2 rounded-lg bg-slate-950/60 border border-slate-800">
+          <span>Fermer toute modale active</span>
+          <kbd class="px-2 py-1 rounded bg-slate-800 border border-slate-700 font-mono font-bold text-slate-400">Esc</kbd>
+        </div>
+        <div class="flex items-center justify-between p-2 rounded-lg bg-slate-950/60 border border-slate-800">
+          <span>Ouvrir cette aide</span>
+          <kbd class="px-2 py-1 rounded bg-slate-800 border border-slate-700 font-mono font-bold text-indigo-400">?</kbd>
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-2">
+        <button onclick="LukeApp.closeModal('shortcuts-modal')" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold">Compris</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALE CONFIRMATION DANGER (CASCADE) -->
+  <div id="confirm-modal" class="hidden fixed inset-0 z-50 items-center justify-center p-4 modal-backdrop animate-fade-in">
+    <div class="bg-slate-900 border border-rose-500/40 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+      <div class="flex items-center space-x-3 text-rose-400">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <h3 id="confirm-modal-title" class="text-base font-bold text-white">Confirmation</h3>
+      </div>
+      <p id="confirm-modal-message" class="text-xs text-slate-300 leading-relaxed"></p>
+      <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-800">
+        <button type="button" onclick="LukeApp.closeModal('confirm-modal')" class="px-3.5 py-2 rounded-xl text-slate-400 hover:bg-slate-800 text-xs">Annuler</button>
+        <button id="confirm-modal-btn" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-semibold rounded-xl text-xs shadow-lg shadow-rose-600/30">Confirmer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATIONS CONTAINER -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none max-w-sm">
+    <!-- Injectés dynamiquement -->
+  </div>
+
+  <!-- Script applicatif -->
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
