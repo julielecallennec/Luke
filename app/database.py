@@ -76,7 +76,7 @@ async def init_indexes(database: Optional[AsyncIOMotorDatabase] = None) -> None:
     - tasks     : { company_id: 1, project_id: 1, status: 1, position: 1 }
     - tasks     : { company_id: 1, assignee_id: 1 }
     """
-    target_db = database or get_database()
+    target_db = database if database is not None else get_database()
     try:
         # Index unique sur le slug d'entreprise
         await target_db.companies.create_index([("slug", 1)], unique=True)
@@ -97,6 +97,12 @@ async def init_indexes(database: Optional[AsyncIOMotorDatabase] = None) -> None:
 
         # Index sur l'assigné par entreprise
         await target_db.tasks.create_index([("company_id", 1), ("assignee_id", 1)])
+
+        # Index pour les sessions et réinitialisation de mot de passe (avec TTL)
+        await target_db.sessions.create_index([("token", 1)], unique=True)
+        await target_db.sessions.create_index([("expires_at", 1)], expireAfterSeconds=0)
+        await target_db.password_resets.create_index([("token", 1)], unique=True)
+        await target_db.password_resets.create_index([("expires_at", 1)], expireAfterSeconds=0)
 
         logger.info("Index MongoDB initialisés avec succès.")
     except Exception as exc:

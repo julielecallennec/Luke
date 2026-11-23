@@ -36,6 +36,163 @@
 <body class="min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
 
   <!-- ===================================================================== -->
+  <!-- 0. ÉCRAN D'AUTHENTIFICATION OBLIGATOIRE (CONNEXION, INSCRIPTION, MDP) -->
+  <!-- ===================================================================== -->
+  <div id="auth-screen" class="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+    <!-- Radiant background glowing blobs -->
+    <div class="fixed -top-40 -left-40 w-96 h-96 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="fixed -bottom-40 -right-40 w-96 h-96 bg-violet-600/15 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="w-full max-w-md bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-3xl shadow-2xl p-6 sm:p-8 relative z-10 animate-fade-in my-auto">
+      
+      <!-- Brand & Header -->
+      <div class="text-center mb-6">
+        <div class="inline-flex w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 items-center justify-center shadow-lg shadow-indigo-600/30 mb-3">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+          </svg>
+        </div>
+        <h1 class="text-2xl font-black tracking-tight text-white">Luke<span class="text-indigo-400">.</span></h1>
+        <p class="text-xs text-slate-400 mt-1">Plateforme SaaS Agile Kanban & Multi-Tenant</p>
+      </div>
+
+      <!-- Navigation Tabs (Connexion / Inscription / MDP oublié) -->
+      <div class="flex items-center bg-slate-950/80 p-1 rounded-xl border border-slate-800 mb-6 text-xs font-semibold">
+        <button id="auth-tab-login" type="button" onclick="LukeApp.showAuthScreen('login')" class="flex-1 py-2 rounded-lg transition bg-indigo-600 text-white shadow">
+          Connexion
+        </button>
+        <button id="auth-tab-register" type="button" onclick="LukeApp.showAuthScreen('register')" class="flex-1 py-2 rounded-lg transition text-slate-400 hover:text-slate-200">
+          Inscription
+        </button>
+        <button id="auth-tab-forgot" type="button" onclick="LukeApp.showAuthScreen('forgot')" class="flex-1 py-2 rounded-lg transition text-slate-400 hover:text-slate-200">
+          Aide / MDP
+        </button>
+      </div>
+
+      <!-- VUE 1 : CONNEXION -->
+      <div id="auth-view-login" class="space-y-4">
+        <form onsubmit="LukeApp.handleLogin(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Adresse email</label>
+            <input type="email" id="login-email" required placeholder="alice@agence-creative.fr" class="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-400">Mot de passe</label>
+              <button type="button" onclick="LukeApp.showAuthScreen('forgot')" class="text-xs text-indigo-400 hover:text-indigo-300 transition">Mot de passe oublié ?</button>
+            </div>
+            <input type="password" id="login-password" required placeholder="••••••••" class="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Organisation (optionnel si unique)</label>
+            <input type="text" id="login-company-slug" placeholder="agence-web-creative (optionnel)" class="w-full bg-slate-800/60 border border-slate-700/70 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+          </div>
+          <button type="submit" id="btn-submit-login" class="w-full py-2.5 px-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold rounded-xl text-sm shadow-lg shadow-indigo-600/30 transition transform active:scale-95">
+            Se connecter
+          </button>
+        </form>
+
+        <!-- Séparateur Démo -->
+        <div class="relative flex py-2 items-center">
+          <div class="flex-grow border-t border-slate-800"></div>
+          <span class="flex-shrink mx-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">Comptes de démo (1 clic)</span>
+          <div class="flex-grow border-t border-slate-800"></div>
+        </div>
+
+        <!-- Boutons 1-clic Démo -->
+        <div class="grid grid-cols-2 gap-2 text-left">
+          <button type="button" onclick="LukeApp.quickLogin('alice@agence-creative.fr', 'alice123')" class="p-2.5 rounded-xl bg-slate-800/70 hover:bg-slate-800 border border-slate-700/80 transition flex flex-col group">
+            <span class="text-xs font-bold text-white group-hover:text-indigo-300">Alice Martin</span>
+            <span class="text-[10px] text-slate-400">Agence Web (Admin)</span>
+          </button>
+          <button type="button" onclick="LukeApp.quickLogin('david@technova.io', 'david123')" class="p-2.5 rounded-xl bg-slate-800/70 hover:bg-slate-800 border border-slate-700/80 transition flex flex-col group">
+            <span class="text-xs font-bold text-white group-hover:text-indigo-300">David Moreau</span>
+            <span class="text-[10px] text-slate-400">TechNova (Admin)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- VUE 2 : INSCRIPTION -->
+      <div id="auth-view-register" class="space-y-4 hidden">
+        <form onsubmit="LukeApp.handleRegister(event)" class="space-y-3.5">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Nom complet</label>
+            <input type="text" id="register-name" required placeholder="Lukas Toulelle" class="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Adresse email</label>
+            <input type="email" id="register-email" required placeholder="lukas@mon-saas.com" class="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Mot de passe (min 6 car.)</label>
+            <input type="password" id="register-password" required minlength="6" placeholder="••••••••" class="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+          </div>
+          <div class="pt-1">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Nom de votre entreprise (SaaS)</label>
+            <input type="text" id="register-company-name" placeholder="Ex: Studio Digital 2026" class="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+            <span class="text-[10px] text-slate-500 mt-1 block">Vous serez automatiquement Administrateur de cette organisation.</span>
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-400 mb-1">Ou rejoindre par slug existant</label>
+            <input type="text" id="register-company-slug" placeholder="ex: agence-web-creative (optionnel)" class="w-full bg-slate-800/60 border border-slate-700/60 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+          </div>
+          <button type="submit" id="btn-submit-register" class="w-full py-2.5 px-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold rounded-xl text-sm shadow-lg shadow-indigo-600/30 transition transform active:scale-95 mt-2">
+            Créer mon compte SaaS
+          </button>
+        </form>
+      </div>
+
+      <!-- VUE 3 : MOT DE PASSE OUBLIÉ -->
+      <div id="auth-view-forgot" class="space-y-4 hidden">
+        <div class="text-xs text-slate-400 leading-relaxed">
+          Saisissez votre adresse email. Un code de réinitialisation sécurisé sera généré pour vous permettre de définir un nouveau mot de passe.
+        </div>
+
+        <!-- Formulaire Étape 1 : Demande de code -->
+        <form id="form-forgot-request" onsubmit="LukeApp.handleForgotPassword(event)" class="space-y-3.5">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Votre email</label>
+            <input type="email" id="forgot-email" required placeholder="alice@agence-creative.fr" class="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+          </div>
+          <button type="submit" id="btn-submit-forgot" class="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-sm shadow transition">
+            Générer un code de réinitialisation
+          </button>
+        </form>
+
+        <!-- Formulaire Étape 2 : Réinitialisation avec le code (affiché après génération) -->
+        <div id="forgot-step2-box" class="hidden space-y-3.5 border-t border-slate-800 pt-4 mt-4">
+          <div id="forgot-code-alert" class="p-3 rounded-xl bg-indigo-950/80 border border-indigo-500/40 text-xs text-indigo-200">
+            <!-- Rempli dynamiquement avec le code généré -->
+          </div>
+          <form onsubmit="LukeApp.handleResetPassword(event)" class="space-y-3">
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Code de réinitialisation</label>
+              <input type="text" id="reset-code" required placeholder="RSET-XXXX" class="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3.5 py-2 text-sm font-mono text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+            </div>
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Nouveau mot de passe (min 6 car.)</label>
+              <input type="password" id="reset-new-password" required minlength="6" placeholder="••••••••" class="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+            </div>
+            <button type="submit" id="btn-submit-reset" class="w-full py-2.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl text-sm shadow transition">
+              Enregistrer le nouveau mot de passe
+            </button>
+          </form>
+        </div>
+
+        <div class="text-center pt-2">
+          <button type="button" onclick="LukeApp.showAuthScreen('login')" class="text-xs text-slate-400 hover:text-white transition">
+            ← Revenir à l'écran de connexion
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ZONE DE L'APPLICATION AUTHENTIFIÉE -->
+  <div id="app-authenticated-zone" class="min-h-screen flex flex-col hidden">
+
+  <!-- ===================================================================== -->
   <!-- 1. HEADER PRINCIPAL (WORKSPACE SWITCHER, TABS, ROLE SWITCHER)         -->
   <!-- ===================================================================== -->
   <header class="border-b border-slate-800/80 bg-slate-900/90 backdrop-blur-md sticky top-0 z-40">
@@ -143,13 +300,25 @@
             <div id="users-dropdown-list" class="space-y-1 max-h-56 overflow-y-auto">
               <!-- Rempli par JavaScript -->
             </div>
-            <div class="border-t border-slate-800 pt-1.5 mt-1.5">
+            <div class="border-t border-slate-800 pt-1.5 mt-1.5 space-y-1">
               <button onclick="LukeApp.openNewUserModal()" class="w-full text-left px-3 py-1.5 rounded-lg text-xs font-semibold text-indigo-400 hover:bg-slate-800 transition flex items-center space-x-2">
                 <span>+ Inviter un collaborateur</span>
+              </button>
+              <button onclick="LukeApp.logout()" class="w-full text-left px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-400 hover:bg-rose-950/40 hover:text-rose-300 transition flex items-center justify-between">
+                <span class="flex items-center space-x-2">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                  <span>Déconnexion</span>
+                </span>
+                <span class="text-[9px] text-slate-500 uppercase">Quitter</span>
               </button>
             </div>
           </div>
         </div>
+
+        <!-- Bouton Déconnexion Direct -->
+        <button onclick="LukeApp.logout()" class="flex items-center justify-center w-8 h-8 rounded-xl bg-slate-800/80 hover:bg-rose-950/40 border border-slate-700/80 hover:border-rose-500/40 text-slate-400 hover:text-rose-400 text-xs font-bold transition shadow-sm" title="Se déconnecter (Déconnexion)">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        </button>
       </div>
 
     </div>
@@ -585,6 +754,7 @@
     </div>
 
   </main>
+  </div> <!-- Fin #app-authenticated-zone -->
 
   <!-- ===================================================================== -->
   <!-- 3. MODALES ET DRAWS                                                   -->

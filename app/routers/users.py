@@ -1,4 +1,3 @@
-import hashlib
 from datetime import datetime, timezone
 from typing import List, Optional
 from bson import ObjectId
@@ -8,16 +7,9 @@ from pymongo.errors import DuplicateKeyError
 from app.database import get_database, serialize_doc, serialize_docs
 from app.dependencies import get_current_company_id, parse_object_id
 from app.models.user import UserCreate, UserResponse, UserUpdate
+from app.services.security import hash_password
 
 router = APIRouter(prefix="/api/users", tags=["Utilisateurs (Users)"])
-
-
-def hash_password(password: str) -> str:
-    """
-    Hash sécurisé pour les mots de passe.
-    """
-    salt = "luke_salt_secure_2026"
-    return hashlib.sha256((salt + password).encode("utf-8")).hexdigest()
 
 
 @router.get("", response_model=List[UserResponse])

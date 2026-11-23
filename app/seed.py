@@ -1,16 +1,11 @@
-import hashlib
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.database import get_database
+from app.services.security import hash_password as hash_pw
 
 logger = logging.getLogger("luke.seed")
-
-
-def hash_pw(pw: str) -> str:
-    salt = "luke_salt_secure_2026"
-    return hashlib.sha256((salt + pw).encode("utf-8")).hexdigest()
 
 
 async def seed_demo_data(database: Optional[AsyncIOMotorDatabase] = None) -> None:
@@ -18,7 +13,7 @@ async def seed_demo_data(database: Optional[AsyncIOMotorDatabase] = None) -> Non
     Insère automatiquement deux entreprises complètes de démonstration
     si la base de données est vide au démarrage.
     """
-    db = database or get_database()
+    db = database if database is not None else get_database()
     existing_companies = await db.companies.count_documents({})
     if existing_companies > 0:
         logger.info(f"Base de données déjà initialisée ({existing_companies} entreprises trouvées). Pas de seed nécessaire.")

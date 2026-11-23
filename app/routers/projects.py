@@ -210,7 +210,7 @@ async def get_project_stats(
 @router.get("/{project_id}/export")
 async def export_project(
     project_id: str,
-    format: str = Query("csv", regex="^(csv|json)$"),
+    format: str = Query("csv", pattern="^(csv|json)$"),
     company_id: ObjectId = Depends(get_current_company_id)
 ):
     """

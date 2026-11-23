@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Optional
 from bson import ObjectId
 from fastapi import Header, HTTPException, Query, status
@@ -16,19 +17,37 @@ def parse_object_id(id_str: str, name: str = "ID") -> ObjectId:
     return ObjectId(id_str)
 
 
+def extract_token(authorization: Optional[str], x_auth_token: Optional[str]) -> Optional[str]:
+    if authorization and authorization.startswith("Bearer "):
+        return authorization[7:].strip()
+    if x_auth_token:
+        return x_auth_token.strip()
+    return None
+
+
 async def get_current_company_id(
     x_company_id: Optional[str] = Header(None, alias="X-Company-Id"),
+    authorization: Optional[str] = Header(None),
+    x_auth_token: Optional[str] = Header(None, alias="X-Auth-Token"),
     company_id: Optional[str] = Query(None)
 ) -> ObjectId:
     """
     Dépendance centrale d'isolation Multi-Tenant :
-    Récupère le company_id actif à partir du header HTTP 'X-Company-Id' ou du paramètre d'URL.
-    Si aucun n'est fourni (ex: test dans Swagger /docs), sélectionne automatiquement la première entreprise trouvée.
-    Vérifie ensuite que l'entreprise existe réellement en base.
+    1. Si un token de session est fourni dans Authorization/X-Auth-Token, récupère la company de la session.
+    2. Si 'X-Company-Id' ou 'company_id' en query est fourni, il a priorité.
+    3. Fallback pour Swagger et facilité de test : première entreprise trouvée.
     """
     db = get_database()
     cid_str = x_company_id or company_id
     
+    # Vérification d'une session active
+    token = extract_token(authorization, x_auth_token)
+    if token and not cid_str:
+        now = datetime.now(timezone.utc)
+        session = await db.sessions.find_one({"token": token, "expires_at": {"$gt": now}})
+        if session:
+            return session["company_id"]
+
     if not cid_str:
         # Fallback pour Swagger et facilité de test
         first_company = await db.companies.find_one({}, sort=[("created_at", 1)])
@@ -50,11 +69,22 @@ async def get_current_company_id(
 
 
 async def get_current_user_id(
-    x_user_id: Optional[str] = Header(None, alias="X-User-Id")
+    x_user_id: Optional[str] = Header(None, alias="X-User-Id"),
+    authorization: Optional[str] = Header(None),
+    x_auth_token: Optional[str] = Header(None, alias="X-Auth-Token")
 ) -> Optional[ObjectId]:
     """
-    Récupère l'identifiant de l'utilisateur actif simulé pour filtrage ou audit.
+    Récupère l'identifiant de l'utilisateur actif via le header de simulation ou la session authentifiée.
     """
-    if not x_user_id:
-        return None
-    return parse_object_id(x_user_id, "user_id")
+    if x_user_id:
+        return parse_object_id(x_user_id, "user_id")
+
+    token = extract_token(authorization, x_auth_token)
+    if token:
+        db = get_database()
+        now = datetime.now(timezone.utc)
+        session = await db.sessions.find_one({"token": token, "expires_at": {"$gt": now}})
+        if session:
+            return session["user_id"]
+
+    return None
