@@ -1,5 +1,11 @@
 from typing import Optional, Literal
-from pydantic import BaseModel, EmailStr, Field
+try:
+    import email_validator  # noqa: F401
+    from pydantic import EmailStr
+except ImportError:
+    EmailStr = str  # type: ignore
+
+from pydantic import BaseModel, Field
 
 
 RoleType = Literal["ADMIN", "MEMBER"]
