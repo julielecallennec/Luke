@@ -1,16 +1,9 @@
-import hashlib
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.database import get_database
-
-logger = logging.getLogger("luke.seed")
-
-
-def hash_pw(pw: str) -> str:
-    salt = "luke_salt_secure_2026"
-    return hashlib.sha256((salt + pw).encode("utf-8")).hexdigest()
+from app.services.security import hash_password as hash_pw
 
 
 async def seed_demo_data(database: Optional[AsyncIOMotorDatabase] = None) -> None:

@@ -5,6 +5,10 @@
 
 const LukeApp = {
   state: {
+    // Authentification SaaS
+    authToken: localStorage.getItem("luke_auth_token") || null,
+    authUser: JSON.parse(localStorage.getItem("luke_auth_user") || "null"),
+
     companies: [],
     currentCompanyId: null,
     currentCompany: null,
@@ -35,21 +39,44 @@ const LukeApp = {
   },
 
   // --------------------------------------------------------------------------
-  // 1. Initialisation
+  // 1. Initialisation & Guard d'Authentification Obligatoire
   // --------------------------------------------------------------------------
   async init() {
     this.setupEventListeners();
     this.setupKeyboardShortcuts();
-    await this.loadCompanies();
+
+    const token = localStorage.getItem("luke_auth_token");
+    if (!token) {
+      this.showAuthScreen("login");
+      return;
+    }
+
+    try {
+      // Vérification du token auprès du serveur
+      this.state.authToken = token;
+      const me = await this.api("/api/auth/me");
+      this.state.authUser = me.user;
+      localStorage.setItem("luke_auth_user", JSON.stringify(me.user));
+      
+      this.hideAuthScreen();
+      await this.loadCompanies(me.company?.id);
+    } catch (err) {
+      console.warn("Session expirée ou invalide :", err);
+      this.logout(false);
+    }
   },
 
-  // Helper pour les appels API avec headers d'isolation Multi-Tenant
+  // Helper pour les appels API avec headers d'isolation Multi-Tenant et JWT/Session
   async api(endpoint, options = {}) {
     const headers = {
       "Content-Type": "application/json",
       ...(options.headers || {})
     };
 
+    if (this.state.authToken) {
+      headers["Authorization"] = `Bearer ${this.state.authToken}`;
+      headers["X-Auth-Token"] = this.state.authToken;
+    }
     if (this.state.currentCompanyId) {
       headers["X-Company-Id"] = this.state.currentCompanyId;
     }
@@ -73,12 +100,261 @@ const LukeApp = {
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
+        if (response.status === 401 && !endpoint.includes("/api/auth/")) {
+          this.logout(false);
+          throw new Error("Session expirée. Veuillez vous reconnecter.");
+        }
         throw new Error(data.detail || data.message || `Erreur HTTP ${response.status}`);
       }
       return data;
     } catch (err) {
       this.showToast(err.message, "error");
       throw err;
+    }
+  },
+
+  // --------------------------------------------------------------------------
+  // 1.1 Gestion des Vues d'Authentification (Login, Register, Forgot Password)
+  // --------------------------------------------------------------------------
+  showAuthScreen(view = "login") {
+    const authScreen = document.getElementById("auth-screen");
+    const appZone = document.getElementById("app-authenticated-zone");
+    if (authScreen) authScreen.classList.remove("hidden");
+    if (appZone) appZone.classList.add("hidden");
+
+    const tabs = ["login", "register", "forgot"];
+    tabs.forEach(t => {
+      const btn = document.getElementById(`auth-tab-${t}`);
+      const viewEl = document.getElementById(`auth-view-${t}`);
+      if (btn) {
+        if (t === view) {
+          btn.className = "flex-1 py-2 rounded-lg transition bg-indigo-600 text-white shadow";
+        } else {
+          btn.className = "flex-1 py-2 rounded-lg transition text-slate-400 hover:text-slate-200";
+        }
+      }
+      if (viewEl) {
+        viewEl.classList.toggle("hidden", t !== view);
+      }
+    });
+  },
+
+  hideAuthScreen() {
+    const authScreen = document.getElementById("auth-screen");
+    const appZone = document.getElementById("app-authenticated-zone");
+    if (authScreen) authScreen.classList.add("hidden");
+    if (appZone) appZone.classList.remove("hidden");
+  },
+
+  async handleLogin(event) {
+    if (event) event.preventDefault();
+    const email = document.getElementById("login-email")?.value.trim();
+    const password = document.getElementById("login-password")?.value;
+    const company_slug = document.getElementById("login-company-slug")?.value.trim() || null;
+    const submitBtn = document.getElementById("btn-submit-login");
+
+    if (!email || !password) {
+      this.showToast("Veuillez renseigner votre email et mot de passe.", "error");
+      return;
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Connexion en cours...";
+    }
+
+    try {
+      const res = await this.api("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password, company_slug })
+      });
+
+      localStorage.setItem("luke_auth_token", res.token);
+      localStorage.setItem("luke_auth_user", JSON.stringify(res.user));
+      this.state.authToken = res.token;
+      this.state.authUser = res.user;
+
+      this.hideAuthScreen();
+      this.showToast(res.message || "Connexion réussie !", "success");
+
+      await this.loadCompanies(res.company?.id);
+    } catch (err) {
+      // Toast géré dans api()
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Se connecter";
+      }
+    }
+  },
+
+  quickLogin(email, password) {
+    const emailInput = document.getElementById("login-email");
+    const passInput = document.getElementById("login-password");
+    if (emailInput) emailInput.value = email;
+    if (passInput) passInput.value = password;
+    this.handleLogin();
+  },
+
+  async handleRegister(event) {
+    if (event) event.preventDefault();
+    const name = document.getElementById("register-name")?.value.trim();
+    const email = document.getElementById("register-email")?.value.trim();
+    const password = document.getElementById("register-password")?.value;
+    const company_name = document.getElementById("register-company-name")?.value.trim() || null;
+    const company_slug = document.getElementById("register-company-slug")?.value.trim() || null;
+    const submitBtn = document.getElementById("btn-submit-register");
+
+    if (!name || !email || !password) {
+      this.showToast("Veuillez remplir tous les champs obligatoires.", "error");
+      return;
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Création du compte...";
+    }
+
+    try {
+      const res = await this.api("/api/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ name, email, password, company_name, company_slug })
+      });
+
+      localStorage.setItem("luke_auth_token", res.token);
+      localStorage.setItem("luke_auth_user", JSON.stringify(res.user));
+      this.state.authToken = res.token;
+      this.state.authUser = res.user;
+
+      this.hideAuthScreen();
+      this.showToast(res.message || "Compte créé avec succès !", "success");
+
+      await this.loadCompanies(res.company?.id);
+    } catch (err) {
+      // Déjà géré
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Créer mon compte SaaS";
+      }
+    }
+  },
+
+  async handleForgotPassword(event) {
+    if (event) event.preventDefault();
+    const email = document.getElementById("forgot-email")?.value.trim();
+    const submitBtn = document.getElementById("btn-submit-forgot");
+
+    if (!email) {
+      this.showToast("Veuillez saisir votre adresse email.", "error");
+      return;
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Génération du code...";
+    }
+
+    try {
+      const res = await this.api("/api/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({ email })
+      });
+
+      const step2 = document.getElementById("forgot-step2-box");
+      const alertEl = document.getElementById("forgot-code-alert");
+      const codeInput = document.getElementById("reset-code");
+
+      if (step2) step2.classList.remove("hidden");
+
+      if (res.reset_code) {
+        if (alertEl) {
+          alertEl.innerHTML = `
+            <div class="font-bold text-white mb-1">Code de réinitialisation sécurisé :</div>
+            <div class="flex items-center space-x-2 my-1">
+              <span class="font-mono text-base font-bold text-indigo-300 bg-slate-900/90 px-2.5 py-1 rounded-lg border border-indigo-500/50 select-all">${res.reset_code}</span>
+              <span class="text-[10px] text-emerald-400 font-medium">Validité 30 min</span>
+            </div>
+            <div class="text-[11px] text-slate-300">Saisissez ce code et votre nouveau mot de passe ci-dessous.</div>
+          `;
+        }
+        if (codeInput) codeInput.value = res.reset_code;
+        this.showToast("Code de réinitialisation généré !", "success");
+      } else {
+        if (alertEl) {
+          alertEl.textContent = res.message;
+        }
+        this.showToast(res.message, "info");
+      }
+    } catch (err) {
+      // Toast
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Générer un code de réinitialisation";
+      }
+    }
+  },
+
+  async handleResetPassword(event) {
+    if (event) event.preventDefault();
+    const token = document.getElementById("reset-code")?.value.trim();
+    const new_password = document.getElementById("reset-new-password")?.value;
+    const submitBtn = document.getElementById("btn-submit-reset");
+
+    if (!token || !new_password) {
+      this.showToast("Veuillez renseigner le code et le nouveau mot de passe.", "error");
+      return;
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Mise à jour...";
+    }
+
+    try {
+      const res = await this.api("/api/auth/reset-password", {
+        method: "POST",
+        body: JSON.stringify({ token, new_password })
+      });
+
+      this.showToast(res.message || "Mot de passe mis à jour !", "success");
+
+      // Préremplir l'email dans le login et basculer sur login
+      const forgotEmail = document.getElementById("forgot-email")?.value;
+      const loginEmail = document.getElementById("login-email");
+      const loginPass = document.getElementById("login-password");
+      if (loginEmail && forgotEmail) loginEmail.value = forgotEmail;
+      if (loginPass) loginPass.value = new_password;
+
+      this.showAuthScreen("login");
+    } catch (err) {
+      // Toast
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Enregistrer le nouveau mot de passe";
+      }
+    }
+  },
+
+  async logout(notify = true) {
+    try {
+      if (this.state.authToken) {
+        await this.api("/api/auth/logout", { method: "POST" }).catch(() => {});
+      }
+    } catch (e) {
+      // Ignorer
+    }
+
+    localStorage.removeItem("luke_auth_token");
+    localStorage.removeItem("luke_auth_user");
+    this.state.authToken = null;
+    this.state.authUser = null;
+
+    this.showAuthScreen("login");
+    if (notify) {
+      this.showToast("Vous avez été déconnecté avec succès.", "info");
     }
   },
 
@@ -164,8 +440,10 @@ const LukeApp = {
       this.state.users = users;
 
       if (users.length > 0) {
-        const admin = users.find(u => u.role === "ADMIN") || users[0];
-        this.setUser(admin.id);
+        const matchingUser = users.find(u => u.id === this.state.authUser?.id) ||
+                             users.find(u => u.role === "ADMIN") ||
+                             users[0];
+        this.setUser(matchingUser.id);
       } else {
         this.state.currentUserId = null;
         this.state.currentUser = null;
