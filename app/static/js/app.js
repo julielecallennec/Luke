@@ -119,8 +119,14 @@ const LukeApp = {
   showAuthScreen(view = "login") {
     const authScreen = document.getElementById("auth-screen");
     const appZone = document.getElementById("app-authenticated-zone");
-    if (authScreen) authScreen.classList.remove("hidden");
-    if (appZone) appZone.classList.add("hidden");
+    if (authScreen) {
+      authScreen.classList.remove("hidden");
+      authScreen.style.setProperty("display", "flex", "important");
+    }
+    if (appZone) {
+      appZone.classList.add("hidden");
+      appZone.style.setProperty("display", "none", "important");
+    }
 
     const tabs = ["login", "register", "forgot"];
     tabs.forEach(t => {
@@ -142,8 +148,14 @@ const LukeApp = {
   hideAuthScreen() {
     const authScreen = document.getElementById("auth-screen");
     const appZone = document.getElementById("app-authenticated-zone");
-    if (authScreen) authScreen.classList.add("hidden");
-    if (appZone) appZone.classList.remove("hidden");
+    if (authScreen) {
+      authScreen.classList.add("hidden");
+      authScreen.style.setProperty("display", "none", "important");
+    }
+    if (appZone) {
+      appZone.classList.remove("hidden");
+      appZone.style.setProperty("display", "flex", "important");
+    }
   },
 
   async handleLogin(event) {
@@ -188,8 +200,20 @@ const LukeApp = {
     }
   },
 
-  quickLogin(event, email, password, companySlug = "") {
-    event?.preventDefault();
+  quickLogin(arg1, arg2, arg3, arg4) {
+    let email = "";
+    let password = "";
+    let companySlug = "";
+    if (typeof arg1 === "string") {
+      email = arg1;
+      password = arg2 || "";
+      companySlug = arg3 || "";
+    } else {
+      if (arg1 && arg1.preventDefault) arg1.preventDefault();
+      email = arg2 || "";
+      password = arg3 || "";
+      companySlug = arg4 || "";
+    }
     const emailInput = document.getElementById("login-email");
     const passInput = document.getElementById("login-password");
     const slugInput = document.getElementById("login-company-slug");
