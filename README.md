@@ -43,25 +43,39 @@ Luke offre une expérience utilisateur moderne servie directement par FastAPI av
 
 ---
 
-## Lancement Rapide en 1 Commande
+## 🚀 Lancement Rapide selon la Partie Évaluée
 
-Le déploiement complet (FastAPI + MongoDB 7.0 + Seed automatique + Interface Web) s'effectue sans aucune action manuelle préalable.
+Le projet supporte à la fois l'architecture **Partie I (Standalone)** et **Partie II (Cluster Distribué & Shardé)** :
 
-Assurez-vous que Docker est démarré, puis lancez :
-
+### 🔹 Option 1 : Lancer la PARTIE II (Scaleup - Cluster Distribué & Shardé)
+C'est la version par défaut sur la branche `main` (et sur la branche `partie-2`) :
 ```bash
+docker compose up -d --build
+```
+* Démarre 11 conteneurs : 3 Config Servers (`rs-config`), 3 nœuds Shard 1 (`rs-shard1`), 3 nœuds Shard 2 (`rs-shard2`), 1 routeur `mongos` et le backend FastAPI.
+
+### 🔹 Option 2 : Lancer la PARTIE I (Instance MongoDB Standalone)
+Pour exécuter ou corriger la Partie I originale :
+```bash
+# Directement via le compose dédié à la Partie 1 :
+docker compose -f compose.partie1.yml up -d --build
+
+# OU en basculant sur la branche Git officielle partie-1 :
+git checkout partie-1
 docker compose up -d --build
 ```
 
 ### URLs d'Accès :
 * **Interface Web Luke** : [http://localhost:8000](http://localhost:8000)
 * **Documentation Swagger interactive** : [http://localhost:8000/docs](http://localhost:8000/docs)
-* **Spécification OpenAPI (JSON)** : [http://localhost:8000/openapi.json](http://localhost:8000/openapi.json)
+* **Statut du Cluster (Partie II)** : [http://localhost:8000/api/cluster/status](http://localhost:8000/api/cluster/status)
 * **Health Check** : [http://localhost:8000/health](http://localhost:8000/health)
 
 Pour arrêter les conteneurs :
 ```bash
 docker compose down
+# ou pour la Partie 1 :
+docker compose -f compose.partie1.yml down
 ```
 
 ---

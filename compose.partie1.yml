@@ -1,0 +1,33 @@
+# ==============================================================================
+# Configuration Docker Compose - PARTIE I (Instance Standalone MongoDB)
+# Commande de lancement : docker compose -f compose.partie1.yml up -d --build
+# ==============================================================================
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: luke_mongodb_p1
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data_p1:/data/db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    build: .
+    container_name: luke_backend_p1
+    ports:
+      - "8000:8000"
+    environment:
+      MONGO_URI: ${MONGO_URI:-mongodb://mongodb:27017/luke_db}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  mongodb_data_p1:
