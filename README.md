@@ -1,18 +1,18 @@
-# Luke - SaaS de Gestion de Projet Agile Multi-Tenant 🚀
+# Luke - SaaS de Gestion de Projet Agile Multi-Tenant
 
 > Application SaaS de gestion de projet agile inspirée de Trello, Notion et ClickUp, propulsée par **FastAPI** et **MongoDB**, dotée d'un tableau Kanban interactif avec Drag & Drop temps réel et d'une isolation multi-tenant stricte préparée pour le Sharding horizontal.
 
 ---
 
 ## Table des Matières
-1. [Aperçu & Fonctionnalités Clés](#-aperçu--fonctionnalités-clés)
-2. [Lancement Rapide en 1 Commande](#-lancement-rapide-en-1-commande)
-3. [Architecture MongoDB & Multi-Tenancy Stricte](#-architecture-mongodb--multi-tenancy-stricte)
-4. [Schémas JSON des 4 Collections](#-schémas-json-des-4-collections)
-5. [Stratégie d'Indexation](#-stratégie-dindexation)
-6. [Préparation Native au Sharding (Partie II)](#-préparation-native-au-sharding-partie-ii)
-7. [Données de Démonstration (Seed Data)](#-données-de-démonstration-seed-data)
-8. [Documentation de l'API REST](#-documentation-de-lapi-rest)
+1. [Aperçu & Fonctionnalités Clés](#aperçu--fonctionnalités-clés)
+2. [Lancement Rapide selon la Partie Évaluée](#lancement-rapide-selon-la-partie-évaluée)
+3. [Architecture MongoDB & Multi-Tenancy Stricte](#architecture-mongodb--multi-tenancy-stricte)
+4. [Schémas JSON des 4 Collections](#schémas-json-des-4-collections)
+5. [Stratégie d'Indexation](#stratégie-dindexation)
+6. [Architecture Distribuée MongoDB - PARTIE II](#architecture-distribuée-mongodb---partie-ii-réplication--sharding)
+7. [Données de Démonstration (Seed Data)](#données-de-démonstration-seed-data)
+8. [Documentation de l'API REST](#documentation-de-lapi-rest)
 
 ---
 
@@ -43,18 +43,18 @@ Luke offre une expérience utilisateur moderne servie directement par FastAPI av
 
 ---
 
-## 🚀 Lancement Rapide selon la Partie Évaluée
+## Lancement Rapide selon la Partie Évaluée
 
 Le projet supporte à la fois l'architecture **Partie I (Standalone)** et **Partie II (Cluster Distribué & Shardé)** :
 
-### 🔹 Option 1 : Lancer la PARTIE II (Scaleup - Cluster Distribué & Shardé)
+### Option 1 : Lancer la PARTIE II (Scaleup - Cluster Distribué & Shardé)
 C'est la version par défaut sur la branche `main` (et sur la branche `partie-2`) :
 ```bash
 docker compose up -d --build
 ```
 * Démarre 11 conteneurs : 3 Config Servers (`rs-config`), 3 nœuds Shard 1 (`rs-shard1`), 3 nœuds Shard 2 (`rs-shard2`), 1 routeur `mongos` et le backend FastAPI.
 
-### 🔹 Option 2 : Lancer la PARTIE I (Instance MongoDB Standalone)
+### Option 2 : Lancer la PARTIE I (Instance MongoDB Standalone)
 Pour exécuter ou corriger la Partie I originale :
 ```bash
 # Directement via le compose dédié à la Partie 1 :
@@ -247,7 +247,7 @@ Au premier lancement, si la base est vide, deux entreprises complètes et indép
 
 ---
 
-## 🚀 Architecture Distribuée MongoDB - PARTIE II (Réplication & Sharding)
+## Architecture Distribuée MongoDB - PARTIE II (Réplication & Sharding)
 
 Conformément aux exigences de la **Partie II (Scaleup)**, l'infrastructure MongoDB évolue vers un cluster distribué complet à haute disponibilité sans aucune modification du code métier :
 
@@ -255,16 +255,16 @@ Conformément aux exigences de la **Partie II (Scaleup)**, l'infrastructure Mong
                                   [ Navigateur Web ]
                                            │
                                     (HTTP Port 8000)
-                                           ▼
+                                           v
                                  [ luke_backend FastAPI ]
                                            │
                         (MONGO_URI: mongodb://mongos:27017/luke_db)
-                                           ▼
+                                           v
                                   [ Routeur mongos ]
                                     (Point d'entrée)
                        ┌───────────────────┼───────────────────┐
                        │                   │                   │
-                       ▼                   ▼                   ▼
+                       v                   v                   v
              [ Replica Set Config ]   [ Replica Set Shard 1 ] [ Replica Set Shard 2 ]
                  (rs-config)              (rs-shard1)             (rs-shard2)
              ┌─────────────────┐      ┌─────────────────┐     ┌─────────────────┐
