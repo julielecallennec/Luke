@@ -149,6 +149,8 @@ services:
       - "8000:8000"
     environment:
       MONGO_URI: ${MONGO_URI:-mongodb://mongos:27017/luke_db?retryWrites=true&w=majority}
+    volumes:
+      - .:/app
     networks:
       - luke_network
     depends_on:

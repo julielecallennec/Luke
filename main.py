@@ -49,10 +49,48 @@ async def lifespan(app: FastAPI):
         client.close()
 
 
+openapi_tags = [
+    {
+        "name": "Cluster & Sharding (Partie II)",
+        "description": "Endpoints d'observabilité et de monitoring du cluster distribué : topologie des shards, Replica Sets, état du sharding et protocole de basculement (Failover)."
+    },
+    {
+        "name": "Authentification & Profil",
+        "description": "Gestion des sessions, connexion des collaborateurs de démonstration et profil actif."
+    },
+    {
+        "name": "Entreprises (Companies)",
+        "description": "Gestion des workspaces clients (Tenants), plans tarifaires et suppression en cascade multi-tenant."
+    },
+    {
+        "name": "Utilisateurs (Collaborateurs)",
+        "description": "Gestion des membres d'équipe, attribution des rôles (ADMIN / MEMBER) et avatars."
+    },
+    {
+        "name": "Projets",
+        "description": "Gestion des projets, assignation des membres, statistiques d'avancement et export CSV / JSON."
+    },
+    {
+        "name": "Tâches Kanban",
+        "description": "Opérations CRUD sur les tâches du tableau Kanban, réorganisation Drag & Drop, checklists de sous-tâches et commentaires."
+    },
+    {
+        "name": "Système",
+        "description": "Health checks et surveillance de la disponibilité applicative."
+    }
+]
+
 app = FastAPI(
     title="Luke - SaaS Agile Kanban API",
-    description="API REST Multi-tenant pour la gestion de projet agile par tableau Kanban (Partie I - MongoDB).",
-    version="1.0.0",
+    description="""
+API REST Multi-tenant pour la gestion de projet agile par tableau Kanban.
+
+Projet BUT3 Informatique :
+- **Partie I (Standalone)** : Modélisation 4 collections (companies, users, projects, tasks), isolation multi-tenant stricte (`company_id`), index composés optimisés et requêtes ciblées.
+- **Partie II (Scaleup Haute Disponibilité & Sharding)** : Cluster distribué MongoDB 12 conteneurs, 3 Replica Sets de 3 nœuds (Quorum N/2 + 1), routage intelligent `mongos`, Zone Sharding multi-tenant déterministe et tolérance aux pannes (Failover automatique transparent avec `retryWrites=true`).
+    """,
+    version="2.0.0",
+    openapi_tags=openapi_tags,
     lifespan=lifespan
 )
 

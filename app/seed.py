@@ -1,33 +1,50 @@
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.database import get_database
 from app.services.security import hash_password as hash_pw
 
 logger = logging.getLogger("luke.seed")
 
+# Identifiants déterministes d'entreprise pour le Sharding et les Zones Multi-Tenant (Partie II)
+CID_AGENCE_WEB = ObjectId("652a1b2c3d4e5f6a7b8c9d01")
+CID_TECHNOVA = ObjectId("652a1b2c3d4e5f6a7b8c9d02")
 
-async def seed_demo_data(database: Optional[AsyncIOMotorDatabase] = None) -> None:
+
+async def seed_demo_data(database: Optional[AsyncIOMotorDatabase] = None, force_reseeding: bool = False) -> None:
     """
     Insère automatiquement deux entreprises complètes de démonstration
-    si la base de données est vide au démarrage.
+    avec des identifiants déterministes garantissant l'affectation aux Shards (Partie II).
     """
     db = database if database is not None else get_database()
     existing_companies = await db.companies.count_documents({})
+    
+    # Vérification si les entreprises en base possèdent les IDs déterministes de sharding
     if existing_companies > 0:
-        await ensure_demo_accounts(db)
-        logger.info(f"Base de données déjà initialisée ({existing_companies} entreprises trouvées). Pas de seed nécessaire.")
-        return
+        aw = await db.companies.find_one({"slug": "agence-web-creative"})
+        if force_reseeding or (aw and aw.get("_id") != CID_AGENCE_WEB):
+            logger.warning("Détection d'anciennes fixtures avec IDs non-déterministes. Réinitialisation des collections pour le Sharding déterministe...")
+            await db.tasks.delete_many({})
+            await db.projects.delete_many({})
+            await db.users.delete_many({})
+            await db.companies.delete_many({})
+            existing_companies = 0
+        else:
+            await ensure_demo_accounts(db)
+            logger.info(f"Base de données déjà initialisée avec les IDs déterministes ({existing_companies} entreprises trouvées).")
+            return
 
-    logger.info("Base de données vide détectée : injection des données de démonstration Luke...")
+    logger.info("Base de données vide ou mise à jour requise : injection des données de démonstration Luke...")
 
     now = datetime.now(timezone.utc)
 
     # =========================================================================
-    # 1. ENTREPRISE 1 : Agence Web Créative (Plan PRO)
+    # 1. ENTREPRISE 1 : Agence Web Créative (Plan PRO - Route vers rs-shard1)
     # =========================================================================
     comp1 = {
+        "_id": CID_AGENCE_WEB,
         "name": "Agence Web Créative",
         "slug": "agence-web-creative",
         "plan": "PRO",
@@ -35,7 +52,7 @@ async def seed_demo_data(database: Optional[AsyncIOMotorDatabase] = None) -> Non
         "updated_at": now - timedelta(days=2)
     }
     c1_res = await db.companies.insert_one(comp1)
-    c1_id = c1_res.inserted_id
+    c1_id = CID_AGENCE_WEB
 
     # Utilisateurs de l'entreprise 1
     users_c1 = [
@@ -308,9 +325,10 @@ async def seed_demo_data(database: Optional[AsyncIOMotorDatabase] = None) -> Non
     await db.tasks.insert_many(tasks_p2)
 
     # =========================================================================
-    # 2. ENTREPRISE 2 : TechNova Solutions (Plan ENTERPRISE)
+    # 2. ENTREPRISE 2 : TechNova Solutions (Plan ENTERPRISE - Route vers rs-shard2)
     # =========================================================================
     comp2 = {
+        "_id": CID_TECHNOVA,
         "name": "TechNova Solutions",
         "slug": "technova-solutions",
         "plan": "ENTERPRISE",
@@ -318,7 +336,7 @@ async def seed_demo_data(database: Optional[AsyncIOMotorDatabase] = None) -> Non
         "updated_at": now - timedelta(days=1)
     }
     c2_res = await db.companies.insert_one(comp2)
-    c2_id = c2_res.inserted_id
+    c2_id = CID_TECHNOVA
 
     # Utilisateurs Entreprise 2
     users_c2 = [
@@ -432,11 +450,12 @@ async def ensure_demo_accounts(database: AsyncIOMotorDatabase) -> None:
     """Add demo accounts to an existing database without deleting user data."""
     now = datetime.now(timezone.utc)
     demos = [
-        ({"name": "Agence Web Creative", "slug": "agence-web-creative", "plan": "PRO"}, [
+        ({"_id": CID_AGENCE_WEB, "name": "Agence Web Créative", "slug": "agence-web-creative", "plan": "PRO"}, [
             ("Alice Martin", "alice@agence-creative.fr", "alice123", "ADMIN", "#4F46E5"),
             ("Bob Dupont", "bob@agence-creative.fr", "bob123", "MEMBER", "#10B981"),
+            ("Clara Bernard", "clara@agence-creative.fr", "clara123", "MEMBER", "#F59E0B"),
         ]),
-        ({"name": "TechNova Solutions", "slug": "technova-solutions", "plan": "ENTERPRISE"}, [
+        ({"_id": CID_TECHNOVA, "name": "TechNova Solutions", "slug": "technova-solutions", "plan": "ENTERPRISE"}, [
             ("David Moreau", "david@technova.io", "david123", "ADMIN", "#8B5CF6"),
             ("Emma Leroy", "emma@technova.io", "emma123", "MEMBER", "#EC4899"),
         ]),

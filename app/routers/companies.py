@@ -56,6 +56,14 @@ async def create_company(company_in: CompanyCreate):
     
     slug = company_in.slug or slugify(company_in.name)
 
+    # Vérification d'unicité applicative (indispensable en cluster Shardé où _id est la shard key)
+    existing = await db.companies.find_one({"slug": slug})
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Une entreprise avec le slug '{slug}' existe déjà."
+        )
+
     company_doc = {
         "name": company_in.name,
         "slug": slug,

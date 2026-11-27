@@ -148,28 +148,28 @@ async def get_failover_demo_info() -> Dict[str, Any]:
             {
                 "step": 1,
                 "action": "Identifier le nœud Primary actuel de Shard 1",
-                "command": "docker exec -it shard1a mongosh --eval \"rs.isMaster()\""
+                "command": "docker exec -it luke_shard1a mongosh --quiet --eval \"rs.status().members.forEach(m => print(m.name + ' -> ' + m.stateStr))\""
             },
             {
                 "step": 2,
                 "action": "Simuler une panne matérielle en coupant le Primary brutalement",
-                "command": "docker stop shard1a"
+                "command": "docker stop luke_shard1a"
             },
             {
                 "step": 3,
-                "action": "Observer l'élection automatique du nouveau Primary (shard1b)",
-                "observation": "En moins de 10 secondes, le Replica Set élit shard1b comme nouveau Primary sans intervention humaine."
+                "action": "Observer l'élection automatique du nouveau Primary (luke_shard1b)",
+                "observation": "En ~10 secondes (selon electionTimeoutMillis), le Replica Set élit shard1b comme nouveau Primary sans intervention humaine."
             },
             {
                 "step": 4,
                 "action": "Vérifier la résilience de l'application SaaS",
-                "observation": "Le routeur mongos et le pilote Motor/PyMongo basculent instantanément les requêtes vers le nouveau Primary. Les utilisateurs continuent à créer des tâches sur le Kanban sans interruption."
+                "observation": "Le routeur mongos et le pilote Motor/PyMongo basculent automatiquement les requêtes grâce à retryWrites=true. Les utilisateurs continuent à manipuler le Kanban en HTTP 200 OK sans interruption."
             },
             {
                 "step": 5,
                 "action": "Rétablissement du nœud arrêté",
-                "command": "docker start shard1a",
-                "observation": "shard1a se reconnecte automatiquement au cluster en tant que Secondary et resynchronise les deltas (Oplog)."
+                "command": "docker start luke_shard1a",
+                "observation": "luke_shard1a se reconnecte automatiquement au cluster en tant que Secondary et resynchronise les deltas (Oplog)."
             }
         ],
         "shard_key_justification": {
