@@ -3,11 +3,88 @@
  * Frontend JavaScript vanilla réactif ultra-complet avec SortableJS
  */
 
-const LukeApp = {
+// Helper de stockage sécurisé anti-crash (résistant aux modes privés, corruptions JSON "undefined")
+const SafeStorage = {
+  get(key) {
+    try {
+      if (typeof window === "undefined" || !window.localStorage) return null;
+      const val = window.localStorage.getItem(key);
+      if (!val || val === "undefined" || val === "null") return null;
+      return val;
+    } catch (e) {
+      return null;
+    }
+  },
+  getJSON(key) {
+    try {
+      const raw = this.get(key);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (e) {
+      this.remove(key);
+      return null;
+    }
+  },
+  set(key, val) {
+    try {
+      if (typeof window !== "undefined" && window.localStorage) {
+        window.localStorage.setItem(key, typeof val === "string" ? val : JSON.stringify(val));
+      }
+    } catch (e) {}
+  },
+  remove(key) {
+    try {
+      if (typeof window !== "undefined" && window.localStorage) {
+        window.localStorage.removeItem(key);
+      }
+    } catch (e) {}
+  }
+};
+
+// Exposer immédiatement la fonction d'accès rapide avec fallback HTTP direct
+window.quickLoginDemo = async function(arg1, arg2, arg3, arg4) {
+  let email = "";
+  let password = "";
+  let companySlug = "";
+  if (typeof arg1 === "string") {
+    email = arg1;
+    password = arg2 || "";
+    companySlug = arg3 || "";
+  } else {
+    if (arg1 && arg1.preventDefault) arg1.preventDefault();
+    email = arg2 || "";
+    password = arg3 || "";
+    companySlug = arg4 || "";
+  }
+
+  if (window.LukeApp && typeof window.LukeApp.quickLogin === "function") {
+    return window.LukeApp.quickLogin(null, email, password, companySlug);
+  }
+
+  try {
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, company_slug: companySlug || null })
+    });
+    const data = await res.json();
+    if (res.ok && data.token) {
+      SafeStorage.set("luke_auth_token", data.token);
+      SafeStorage.set("luke_auth_user", data.user);
+      window.location.reload();
+    } else {
+      alert(data.detail || data.message || "Erreur de connexion démo");
+    }
+  } catch (err) {
+    alert("Erreur réseau : " + err.message);
+  }
+};
+
+const LukeApp = window.LukeApp = {
   state: {
     // Authentification SaaS
-    authToken: localStorage.getItem("luke_auth_token") || null,
-    authUser: JSON.parse(localStorage.getItem("luke_auth_user") || "null"),
+    authToken: SafeStorage.get("luke_auth_token"),
+    authUser: SafeStorage.getJSON("luke_auth_user"),
 
     companies: [],
     currentCompanyId: null,
@@ -42,10 +119,18 @@ const LukeApp = {
   // 1. Initialisation & Guard d'Authentification Obligatoire
   // --------------------------------------------------------------------------
   async init() {
-    this.setupEventListeners();
-    this.setupKeyboardShortcuts();
+    try {
+      this.setupEventListeners();
+    } catch (e) {
+      console.warn("setupEventListeners error:", e);
+    }
+    try {
+      this.setupKeyboardShortcuts();
+    } catch (e) {
+      console.warn("setupKeyboardShortcuts error:", e);
+    }
 
-    const token = localStorage.getItem("luke_auth_token");
+    const token = SafeStorage.get("luke_auth_token");
     if (!token) {
       this.showAuthScreen("login");
       return;
@@ -56,7 +141,7 @@ const LukeApp = {
       this.state.authToken = token;
       const me = await this.api("/api/auth/me");
       this.state.authUser = me.user;
-      localStorage.setItem("luke_auth_user", JSON.stringify(me.user));
+      SafeStorage.set("luke_auth_user", me.user);
       
       this.hideAuthScreen();
       await this.loadCompanies(me.company?.id);
@@ -181,8 +266,8 @@ const LukeApp = {
         body: JSON.stringify({ email, password, company_slug })
       });
 
-      localStorage.setItem("luke_auth_token", res.token);
-      localStorage.setItem("luke_auth_user", JSON.stringify(res.user));
+      SafeStorage.set("luke_auth_token", res.token);
+      SafeStorage.set("luke_auth_user", res.user);
       this.state.authToken = res.token;
       this.state.authUser = res.user;
 
@@ -248,8 +333,8 @@ const LukeApp = {
         body: JSON.stringify({ name, email, password, company_name, company_slug })
       });
 
-      localStorage.setItem("luke_auth_token", res.token);
-      localStorage.setItem("luke_auth_user", JSON.stringify(res.user));
+      SafeStorage.set("luke_auth_token", res.token);
+      SafeStorage.set("luke_auth_user", res.user);
       this.state.authToken = res.token;
       this.state.authUser = res.user;
 
@@ -374,8 +459,8 @@ const LukeApp = {
       // Ignorer
     }
 
-    localStorage.removeItem("luke_auth_token");
-    localStorage.removeItem("luke_auth_user");
+    SafeStorage.remove("luke_auth_token");
+    SafeStorage.remove("luke_auth_user");
     this.state.authToken = null;
     this.state.authUser = null;
 
@@ -924,8 +1009,15 @@ const LukeApp = {
   // 7. SortableJS Drag & Drop
   // --------------------------------------------------------------------------
   initSortable() {
-    this.state.sortableInstances.forEach(s => s.destroy());
+    this.state.sortableInstances.forEach(s => {
+      try { s.destroy(); } catch (e) {}
+    });
     this.state.sortableInstances = [];
+
+    if (typeof Sortable === "undefined") {
+      console.warn("SortableJS n'est pas chargé (bloqué par un bloqueur ou hors ligne). Drag-and-drop désactivé.");
+      return;
+    }
 
     const columns = ["TODO", "IN_PROGRESS", "IN_REVIEW", "DONE"];
 
