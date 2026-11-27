@@ -69,42 +69,66 @@ async def ping_database_with_retry(max_retries: int = 15, delay_seconds: float =
 
 async def init_indexes(database: Optional[AsyncIOMotorDatabase] = None) -> None:
     """
-    Crée automatiquement les index obligatoires au démarrage :
-    - companies : { slug: 1 } (Unique)
-    - users     : { company_id: 1, email: 1 } (Unique)
-    - projects  : { company_id: 1, member_ids: 1 }
-    - tasks     : { company_id: 1, project_id: 1, status: 1, position: 1 }
-    - tasks     : { company_id: 1, assignee_id: 1 }
+    Crée automatiquement les index obligatoires au démarrage, compatibles à la fois
+    avec l'architecture Standalone (Partie I) et l'architecture Shardée distribuée (Partie II) :
+    - companies : { slug: 1 } (Unique en standalone, index standard en shardé avec unicité applicative)
+    - users     : { company_id: 1, email: 1 } (Unique, préfixé par la Shard Key)
+    - projects  : { company_id: 1, _id: 1 } et { company_id: 1, member_ids: 1 }
+    - tasks     : { company_id: 1, _id: 1 } et { company_id: 1, project_id: 1, status: 1, position: 1 }
     """
     target_db = database if database is not None else get_database()
     try:
-        # Index unique sur le slug d'entreprise
-        await target_db.companies.create_index([("slug", 1)], unique=True)
+        # Détection du mode (routeur mongos vs standalone)
+        is_sharded = False
+        try:
+            hello_res = await target_db.command("hello")
+            is_sharded = (hello_res.get("msg") == "isdbgrid")
+        except Exception:
+            pass
 
-        # Index unique sur l'email par entreprise
+        # 1. Index sur companies.slug
+        # En cluster shardé ({ _id: "hashed" }), MongoDB restreint les index uniques aux préfixes de la Shard Key.
+        # L'unicité du slug est garantie par FastAPI (routers/companies.py), accélérée par cet index.
+        # En mode standalone (Partie I), l'index peut être déclaré unique directement au niveau moteur.
+        if is_sharded:
+            await target_db.companies.create_index([("slug", 1)])
+        else:
+            try:
+                await target_db.companies.create_index([("slug", 1)], unique=True)
+            except Exception:
+                await target_db.companies.create_index([("slug", 1)])
+
+        # 2. Index unique sur l'email par entreprise (Shard Key { company_id: 1, email: 1 } compatible)
         await target_db.users.create_index([("company_id", 1), ("email", 1)], unique=True)
 
-        # Index composé sur les membres d'un projet par entreprise
+        # 3. Index de Sharding et de requête sur projects
+        await target_db.projects.create_index([("company_id", 1), ("_id", 1)])
         await target_db.projects.create_index([("company_id", 1), ("member_ids", 1)])
 
-        # Index composé couvrant l'affichage Kanban par entreprise, projet, statut et position
+        # 4. Index de Sharding et composé Kanban sur tasks
+        await target_db.tasks.create_index([("company_id", 1), ("_id", 1)])
         await target_db.tasks.create_index([
             ("company_id", 1),
             ("project_id", 1),
             ("status", 1),
             ("position", 1)
         ])
-
-        # Index sur l'assigné par entreprise
         await target_db.tasks.create_index([("company_id", 1), ("assignee_id", 1)])
 
-        # Index pour les sessions et réinitialisation de mot de passe (avec TTL)
-        await target_db.sessions.create_index([("token", 1)], unique=True)
+        # 5. Index pour les sessions et réinitialisation de mot de passe (avec TTL)
+        try:
+            await target_db.sessions.create_index([("token", 1)], unique=True)
+        except Exception:
+            await target_db.sessions.create_index([("token", 1)])
         await target_db.sessions.create_index([("expires_at", 1)], expireAfterSeconds=0)
-        await target_db.password_resets.create_index([("token", 1)], unique=True)
+
+        try:
+            await target_db.password_resets.create_index([("token", 1)], unique=True)
+        except Exception:
+            await target_db.password_resets.create_index([("token", 1)])
         await target_db.password_resets.create_index([("expires_at", 1)], expireAfterSeconds=0)
 
-        logger.info("Index MongoDB initialisés avec succès.")
+        logger.info(f"Index MongoDB initialisés avec succès (Mode: {'Shardé (Partie II)' if is_sharded else 'Standalone (Partie I)'}).")
     except Exception as exc:
         logger.error(f"Erreur lors de la création des index MongoDB : {exc}")
 

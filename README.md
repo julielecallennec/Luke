@@ -13,6 +13,7 @@
 6. [Architecture Distribuée MongoDB - PARTIE II](#architecture-distribuée-mongodb---partie-ii-réplication--sharding)
 7. [Données de Démonstration (Seed Data)](#données-de-démonstration-seed-data)
 8. [Documentation de l'API REST](#documentation-de-lapi-rest)
+9. [Documentation Technique & Rapports de Tests (Partie II)](#documentation-technique--rapports-de-tests-partie-ii)
 
 ---
 
@@ -52,7 +53,7 @@ C'est la version par défaut sur la branche `main` (et sur la branche `partie-2`
 ```bash
 docker compose up -d --build
 ```
-* Démarre 11 conteneurs : 3 Config Servers (`rs-config`), 3 nœuds Shard 1 (`rs-shard1`), 3 nœuds Shard 2 (`rs-shard2`), 1 routeur `mongos` et le backend FastAPI.
+* Démarre 12 conteneurs : 3 Config Servers (`rs-config`), 3 nœuds Shard 1 (`rs-shard1`), 3 nœuds Shard 2 (`rs-shard2`), 1 routeur `mongos`, 1 orchestrateur d'initialisation one-shot (`cluster-init`) et le backend FastAPI.
 
 ### Option 2 : Lancer la PARTIE I (Instance MongoDB Standalone)
 Pour exécuter ou corriger la Partie I originale :
@@ -274,10 +275,11 @@ Conformément aux exigences de la **Partie II (Scaleup)**, l'infrastructure Mong
              └─────────────────┘      └─────────────────┘     └─────────────────┘
 ```
 
-### 1. Clé de Sharding : `{ company_id: 1, _id: 1 }`
-* **Co-localisation Multi-Tenant** : 100% des données d'un client (tâches, projets, collaborateurs) sont co-localisées sur un seul Shard.
-* **Targeted Queries** : `mongos` route directement chaque requête Kanban vers le shard concerné sans broadcast (*Scatter-Gather*).
-* **Isolation stricte** : Agence Web Créative -> `rs-shard1` / TechNova Solutions -> `rs-shard2`.
+### 1. Clés de Sharding & Modélisation Multi-Tenant
+* **`tasks` & `projects` : `{ company_id: 1, _id: 1 }`** : Co-localisation de toutes les entités d'un client sur un même shard, éliminant les requêtes dispersées (*Scatter-Gather*). Le second champ `_id: 1` assure une cardinalité élevée et empêche la création de *jumbo chunks* (> 64 Mo).
+* **`users` : `{ company_id: 1, email: 1 }`** : Permet à MongoDB d'appliquer nativement la contrainte d'unicité de l'email par entreprise au niveau de la base de données.
+* **`companies` : `{ _id: "hashed" }`** : Répartition uniforme des entreprises clientes sur l'ensemble des shards, l'unicité du `slug` étant garantie au niveau applicatif par FastAPI (HTTP 409).
+* **Targeted Queries & Zones** : `mongos` route directement chaque requête Kanban vers le shard concerné. Grâce au Zone Sharding, Agence Web Créative -> `rs-shard1` et TechNova Solutions -> `rs-shard2`.
 
 ### 2. Démonstration du Basculement Automatique (Failover)
 Pour tester l'élection automatique d'un nouveau Primary sans interruption de service :
@@ -287,12 +289,31 @@ docker stop luke_shard1a
 
 # 2. Observer le tableau Kanban dans le navigateur :
 # L'application reste 100% active et continue à répondre en 200 OK.
-# shard1b est élu nouveau Primary en moins de 5 secondes.
+# shard1b est élu nouveau Primary en ~10 secondes (ou moins selon electionTimeoutMillis).
+# La directive retryWrites=true de MONGO_URI rejoue automatiquement les écritures.
 
 # 3. Rallumer le nœud rétabli
 docker start luke_shard1a
 # shard1a réintègre automatiquement le cluster comme Secondary.
 ```
+
+---
+
+## Documentation Technique & Rapports de Tests (Partie II)
+
+Les spécifications détaillées et les rapports d'expérimentation de la Partie II sont disponibles dans le dossier `docs/` :
+
+* **[Spécification Technique Complète (Partie II)](docs/Specification_Technique_Partie_II.md)** :
+  * Architecture globale des 12 conteneurs avec schéma Mermaid complet et flux réseaux.
+  * Justification mathématique et technique des clés de Sharding (co-localisation, cardinalité, prévention des jumbo chunks).
+  * Résolution des contraintes d'unicité MongoDB (`users.email` préfixé par la shard key, `companies.slug` validé au niveau applicatif).
+  * Mécanisme de Zone Sharding et pre-splitting déterministe.
+  * Protocole de basculement automatique (Failover), quorum N/2 + 1, et analyse du compromis SPOF mongos.
+
+* **[Analyse des Résultats de Tests (Partie II)](docs/Analyse_Resultats_Tests.md)** :
+  * **Test 1 - Réplication & Redondance** : Validation de la présence des 3 copies par Replica Set (`rs.status()`, lecture répliquée sur secondaire avec lag < 15 ms).
+  * **Test 2 - Sharding & Répartition Chunks** : Constat de la répartition 100 % effective des données (Agence Web sur Shard 1, TechNova sur Shard 2) et suppression du Scatter-Gather.
+  * **Test 3 - Tolérance aux Pannes & Failover** : Arrêt brutal du Primary `luke_shard1a`, élection automatique de `luke_shard1b` et continuité de service sans erreur HTTP 500 (`retryWrites=true`).
 
 ---
 
