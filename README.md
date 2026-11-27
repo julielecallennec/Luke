@@ -228,6 +228,57 @@ Au premier lancement, si la base est vide, deux entreprises complètes et indép
 | `POST` | `/api/tasks/{id}/comments` | **Ajout d'un commentaire** | Fil d'échange d'équipe horodaté |
 | `DELETE` | `/api/tasks/{id}/comments/{cid}` | Supprime un commentaire | Nettoyage du fil |
 | `DELETE` | `/api/tasks/{id}` | Supprime une tâche | Filtré par `company_id` |
+| `GET` | `/api/cluster/status` | **Statut live du cluster distribué** | Shards, Replica Sets, Chunks & Répartition |
+| `GET` | `/api/cluster/failover-demo` | **Protocole et métriques de Failover** | Guide de test de basculement automatique |
+
+---
+
+## 🚀 Architecture Distribuée MongoDB - PARTIE II (Réplication & Sharding)
+
+Conformément aux exigences de la **Partie II (Scaleup)**, l'infrastructure MongoDB évolue vers un cluster distribué complet à haute disponibilité sans aucune modification du code métier :
+
+```
+                                  [ Navigateur Web ]
+                                           │
+                                    (HTTP Port 8000)
+                                           ▼
+                                 [ luke_backend FastAPI ]
+                                           │
+                        (MONGO_URI: mongodb://mongos:27017/luke_db)
+                                           ▼
+                                  [ Routeur mongos ]
+                                    (Point d'entrée)
+                       ┌───────────────────┼───────────────────┐
+                       │                   │                   │
+                       ▼                   ▼                   ▼
+             [ Replica Set Config ]   [ Replica Set Shard 1 ] [ Replica Set Shard 2 ]
+                 (rs-config)              (rs-shard1)             (rs-shard2)
+             ┌─────────────────┐      ┌─────────────────┐     ┌─────────────────┐
+             │  configsvr1 (P) │      │   shard1a (P)   │     │   shard2a (P)   │
+             │  configsvr2 (S) │      │   shard1b (S)   │     │   shard2b (S)   │
+             │  configsvr3 (S) │      │   shard1c (S)   │     │   shard2c (S)   │
+             └─────────────────┘      └─────────────────┘     └─────────────────┘
+```
+
+### 1. Clé de Sharding : `{ company_id: 1, _id: 1 }`
+* **Co-localisation Multi-Tenant** : 100% des données d'un client (tâches, projets, collaborateurs) sont co-localisées sur un seul Shard.
+* **Targeted Queries** : `mongos` route directement chaque requête Kanban vers le shard concerné sans broadcast (*Scatter-Gather*).
+* **Isolation stricte** : Agence Web Créative -> `rs-shard1` / TechNova Solutions -> `rs-shard2`.
+
+### 2. Démonstration du Basculement Automatique (Failover)
+Pour tester l'élection automatique d'un nouveau Primary sans interruption de service :
+```bash
+# 1. Couper le Primary actuel de Shard 1
+docker stop luke_shard1a
+
+# 2. Observer le tableau Kanban dans le navigateur :
+# L'application reste 100% active et continue à répondre en 200 OK.
+# shard1b est élu nouveau Primary en moins de 5 secondes.
+
+# 3. Rallumer le nœud rétabli
+docker start luke_shard1a
+# shard1a réintègre automatiquement le cluster comme Secondary.
+```
 
 ---
 

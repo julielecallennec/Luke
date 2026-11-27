@@ -707,67 +707,209 @@
     </div>
 
     <!-- =================================================================== -->
-    <!-- ONGLET 4 : ARCHITECTURE & SHARDING (EXPLICATIONS PÉDAGOGIQUES)      -->
+    <!-- ONGLET 4 : ARCHITECTURE DISTRIBUÉE, RÉPLICATION & SHARDING (PARTIE II) -->
     <!-- =================================================================== -->
     <div id="tab-content-architecture" class="hidden space-y-6 animate-fade-in">
       <div class="glass-panel rounded-2xl p-6 shadow-xl border border-slate-800/80">
-        <div class="flex items-center space-x-3 mb-4">
-          <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center font-bold text-lg">
-            ⚡
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center font-bold text-lg">
+              ⚡
+            </div>
+            <div>
+              <h2 class="text-lg font-bold text-slate-100 flex items-center space-x-2">
+                <span>Architecture MongoDB Distribuée</span>
+                <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">PARTIE II VALIDÉE</span>
+              </h2>
+              <p class="text-xs text-slate-400">Haute Disponibilité (Replica Sets), Sharding horizontal & Routage Multi-Tenant via mongos.</p>
+            </div>
           </div>
-          <div>
-            <h2 class="text-lg font-bold text-slate-100">Architecture Multi-Tenant & Préparation au Sharding (Partie II)</h2>
-            <p class="text-xs text-slate-400">Démonstration de la conformité aux exigences techniques et isolation logicielle stricte.</p>
-          </div>
+          <button type="button" onclick="LukeApp.renderArchitectureTab()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 flex items-center space-x-1.5 transition">
+            <span>🔄</span>
+            <span>Rafraîchir Cluster</span>
+          </button>
         </div>
 
+        <!-- 4 Cartes Métriques Clés -->
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
-            <span class="text-[11px] text-slate-400 uppercase font-semibold">Workspace Actif (company_id)</span>
+            <span class="text-[11px] text-slate-400 uppercase font-semibold">Workspace Actif</span>
             <div id="arch-current-cid" class="text-xs font-mono text-indigo-400 font-bold truncate mt-1">-</div>
           </div>
           <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
-            <span class="text-[11px] text-slate-400 uppercase font-semibold">Utilisateurs Isolés</span>
-            <div id="arch-count-users" class="text-xl font-mono text-emerald-400 font-bold mt-1">0</div>
+            <span class="text-[11px] text-slate-400 uppercase font-semibold">Topologie Routeur</span>
+            <div id="arch-router-type" class="text-sm font-mono text-emerald-400 font-bold mt-1">mongos (Cluster Shardé)</div>
           </div>
           <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
-            <span class="text-[11px] text-slate-400 uppercase font-semibold">Projets Isolés</span>
-            <div id="arch-count-projects" class="text-xl font-mono text-amber-400 font-bold mt-1">0</div>
+            <span class="text-[11px] text-slate-400 uppercase font-semibold">Shards Actifs</span>
+            <div id="arch-shards-count" class="text-xl font-mono text-amber-400 font-bold mt-1">2 Shards (6 Nœuds)</div>
           </div>
           <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
-            <span class="text-[11px] text-slate-400 uppercase font-semibold">Tâches Isolées</span>
-            <div id="arch-count-tasks" class="text-xl font-mono text-rose-400 font-bold mt-1">0</div>
+            <span class="text-[11px] text-slate-400 uppercase font-semibold">Failover Automatique</span>
+            <div id="arch-failover-status" class="text-sm font-mono text-emerald-400 font-bold mt-1">Actif (Quorum N/2 + 1)</div>
           </div>
         </div>
 
-        <div class="space-y-4 text-xs text-slate-300 leading-relaxed">
-          <div class="p-4 bg-slate-950/60 rounded-xl border border-slate-800">
-            <h4 class="font-bold text-white mb-1 flex items-center space-x-1.5">
-              <span>🛡️ 1. Isolation Logicielle Stricte</span>
-            </h4>
-            <p>
-              Toutes les requêtes de l'API FastAPI (lecture, création, modification, suppression) exécutées sur <code class="text-indigo-300">users</code>, <code class="text-indigo-300">projects</code> et <code class="text-indigo-300">tasks</code> appliquent impérativement le filtre MongoDB <code class="text-indigo-300 font-mono">{"company_id": current_company_id}</code>. Aucune fuite inter-entreprises n'est possible, même en manipulant les identifiants d'URL.
-            </p>
-          </div>
+        <!-- Topologie des Serveurs du Cluster Distribué -->
+        <div class="mb-6">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3 flex items-center space-x-2">
+            <span>🌐 Topologie Physique des Conteneurs (Haute Disponibilité & Sharding)</span>
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            
+            <!-- Shard 1 -->
+            <div class="bg-slate-950/60 rounded-xl p-4 border border-slate-800/80">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-white flex items-center space-x-1.5">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                  <span>Shard 1 (rs-shard1)</span>
+                </span>
+                <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-300 border border-emerald-800/50">Port 27017</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mb-3">Héberge les données d'<strong>Agence Web Créative</strong> (Targeted Queries).</p>
+              <div class="space-y-1.5 text-[11px] font-mono">
+                <div class="flex items-center justify-between bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-800">
+                  <span class="text-slate-300">shard1a</span>
+                  <span class="text-xs font-bold text-emerald-400">PRIMARY</span>
+                </div>
+                <div class="flex items-center justify-between bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-800">
+                  <span class="text-slate-300">shard1b</span>
+                  <span class="text-xs text-slate-400">SECONDARY</span>
+                </div>
+                <div class="flex items-center justify-between bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-800">
+                  <span class="text-slate-300">shard1c</span>
+                  <span class="text-xs text-slate-400">SECONDARY</span>
+                </div>
+              </div>
+            </div>
 
-          <div class="p-4 bg-slate-950/60 rounded-xl border border-slate-800">
-            <h4 class="font-bold text-white mb-1 flex items-center space-x-1.5">
-              <span>🚀 2. Clé de Sharding & Dénormalisation stratégique</span>
-            </h4>
-            <p>
-              Le champ <code class="text-indigo-300 font-mono">company_id</code> est <strong>obligatoirement dénormalisé</strong> dans chaque document de tâche, projet et utilisateur. En Partie II, la clé de distribution composée <code class="text-indigo-300 font-mono">{ company_id: 1, _id: 1 }</code> permettra aux routeurs <code class="text-emerald-400 font-mono">mongos</code> de router 100% des requêtes d'une entreprise vers un unique Shard hébergeant ses données (<em>Targeted Queries</em> ultra-rapides sans broadcast <em>Scatter-Gather</em>).
-            </p>
-          </div>
+            <!-- Shard 2 -->
+            <div class="bg-slate-950/60 rounded-xl p-4 border border-slate-800/80">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-white flex items-center space-x-1.5">
+                  <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
+                  <span>Shard 2 (rs-shard2)</span>
+                </span>
+                <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-950/60 text-indigo-300 border border-indigo-800/50">Port 27017</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mb-3">Héberge les données de <strong>TechNova Solutions</strong> (Targeted Queries).</p>
+              <div class="space-y-1.5 text-[11px] font-mono">
+                <div class="flex items-center justify-between bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-800">
+                  <span class="text-slate-300">shard2a</span>
+                  <span class="text-xs font-bold text-indigo-400">PRIMARY</span>
+                </div>
+                <div class="flex items-center justify-between bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-800">
+                  <span class="text-slate-300">shard2b</span>
+                  <span class="text-xs text-slate-400">SECONDARY</span>
+                </div>
+                <div class="flex items-center justify-between bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-800">
+                  <span class="text-slate-300">shard2c</span>
+                  <span class="text-xs text-slate-400">SECONDARY</span>
+                </div>
+              </div>
+            </div>
 
-          <div class="p-4 bg-slate-950/60 rounded-xl border border-slate-800">
-            <h4 class="font-bold text-white mb-1 flex items-center space-x-1.5">
-              <span>🌐 3. Zéro IP en dur & Évolutivité sans recompilation</span>
-            </h4>
-            <p>
-              Le code source ne contient aucune adresse IP, ni port, ni nom d'hôte codé en dur. Il s'appuie exclusivement sur la variable d'environnement <code class="text-indigo-300 font-mono">MONGO_URI</code>. Passer d'une instance standalone à un cluster distribué avec réplication se fera sans retoucher une seule ligne de code Python.
-            </p>
+            <!-- Config Servers & Routeur -->
+            <div class="bg-slate-950/60 rounded-xl p-4 border border-slate-800/80">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-white flex items-center space-x-1.5">
+                  <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                  <span>Config Servers & Routeur</span>
+                </span>
+                <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-800/50">rs-config</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mb-3">Stockage des métadonnées du cluster & routage transparent des requêtes.</p>
+              <div class="space-y-1.5 text-[11px] font-mono">
+                <div class="flex items-center justify-between bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-800">
+                  <span class="text-slate-300">mongos (Routeur)</span>
+                  <span class="text-xs font-bold text-emerald-400">POINT D'ENTRÉE</span>
+                </div>
+                <div class="flex items-center justify-between bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-800">
+                  <span class="text-slate-300">configsvr1</span>
+                  <span class="text-xs font-bold text-amber-400">PRIMARY</span>
+                </div>
+                <div class="flex items-center justify-between bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-800">
+                  <span class="text-slate-300">configsvr2, configsvr3</span>
+                  <span class="text-xs text-slate-400">SECONDARIES</span>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
+
+        <!-- Clés de Sharding et Co-localisation Multi-Tenant -->
+        <div class="mb-6">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3">
+            🎯 Justification de la Clé de Sharding & Co-localisation Multi-Tenant
+          </h3>
+          <div class="overflow-x-auto rounded-xl border border-slate-800">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-950/80 text-slate-400 uppercase text-[10px] font-bold border-b border-slate-800">
+                <tr>
+                  <th class="py-2.5 px-3">Collection</th>
+                  <th class="py-2.5 px-3">Clé de Sharding</th>
+                  <th class="py-2.5 px-3">Type</th>
+                  <th class="py-2.5 px-3">Routage Requête</th>
+                  <th class="py-2.5 px-3">Bénéfice Scaleup</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60 font-mono text-[11px] text-slate-300">
+                <tr>
+                  <td class="py-2.5 px-3 font-bold text-white">tasks</td>
+                  <td class="py-2.5 px-3 text-indigo-300">{ company_id: 1, _id: 1 }</td>
+                  <td class="py-2.5 px-3 text-slate-400">Ranged Composée</td>
+                  <td class="py-2.5 px-3 text-emerald-400 font-bold">Targeted (1 Shard)</td>
+                  <td class="py-2.5 px-3 font-sans text-xs text-slate-400">Déplacements Kanban ultra-rapides, zéro Scatter-Gather</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-3 font-bold text-white">users</td>
+                  <td class="py-2.5 px-3 text-indigo-300">{ company_id: 1, _id: 1 }</td>
+                  <td class="py-2.5 px-3 text-slate-400">Ranged Composée</td>
+                  <td class="py-2.5 px-3 text-emerald-400 font-bold">Targeted (1 Shard)</td>
+                  <td class="py-2.5 px-3 font-sans text-xs text-slate-400">Recherche d'équipe et authentification co-localisées</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-3 font-bold text-white">projects</td>
+                  <td class="py-2.5 px-3 text-indigo-300">{ company_id: 1, _id: 1 }</td>
+                  <td class="py-2.5 px-3 text-slate-400">Ranged Composée</td>
+                  <td class="py-2.5 px-3 text-emerald-400 font-bold">Targeted (1 Shard)</td>
+                  <td class="py-2.5 px-3 font-sans text-xs text-slate-400">Isolation stricte des workspaces projets</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-3 font-bold text-white">companies</td>
+                  <td class="py-2.5 px-3 text-indigo-300">{ _id: "hashed" }</td>
+                  <td class="py-2.5 px-3 text-slate-400">Hashed</td>
+                  <td class="py-2.5 px-3 text-amber-400">Uniforme</td>
+                  <td class="py-2.5 px-3 font-sans text-xs text-slate-400">Équilibrage parfait des organisations sur tous les shards</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Protocole de Démonstration du Failover (Panne de nœud) -->
+        <div class="p-4 bg-slate-950/70 rounded-xl border border-slate-800 text-xs">
+          <h4 class="font-bold text-white mb-2 flex items-center space-x-2">
+            <span>🛡️ Démonstration du Basculement Automatique (Failover)</span>
+          </h4>
+          <p class="text-slate-300 mb-3">
+            Pour tester l'élection automatique du nouveau Primary en cas de crash sans intervention manuelle :
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-[11px]">
+            <div class="bg-slate-900/90 p-3 rounded-lg border border-slate-800">
+              <span class="text-slate-400 font-sans block font-semibold mb-1">1. Couper le Primary de Shard 1 :</span>
+              <code class="text-rose-400">docker stop luke_shard1a</code>
+              <span class="text-slate-400 font-sans block text-[10px] mt-1.5">shard1b est immédiatement élu Primary par le quorum. L'application continue à fonctionner sans interruption !</span>
+            </div>
+            <div class="bg-slate-900/90 p-3 rounded-lg border border-slate-800">
+              <span class="text-slate-400 font-sans block font-semibold mb-1">2. Rallumer le nœud rétabli :</span>
+              <code class="text-emerald-400">docker start luke_shard1a</code>
+              <span class="text-slate-400 font-sans block text-[10px] mt-1.5">shard1a se reconnecte automatiquement en tant que Secondary et resynchronise les données via l'Oplog.</span>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 

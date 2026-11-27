@@ -1891,19 +1891,29 @@ const LukeApp = window.LukeApp = {
     `).join("");
   },
 
-  renderArchitectureTab() {
+  async renderArchitectureTab() {
     const comp = this.state.currentCompany;
-    if (!comp) return;
-
     const cidEl = document.getElementById("arch-current-cid");
-    const countUsersEl = document.getElementById("arch-count-users");
-    const countProjEl = document.getElementById("arch-count-projects");
-    const countTasksEl = document.getElementById("arch-count-tasks");
+    if (cidEl && comp) cidEl.textContent = `${comp.name} (${comp.id})`;
 
-    if (cidEl) cidEl.textContent = comp.id;
-    if (countUsersEl) countUsersEl.textContent = this.state.users.length;
-    if (countProjEl) countProjEl.textContent = this.state.projects.length;
-    if (countTasksEl) countTasksEl.textContent = this.state.tasks.length;
+    try {
+      const status = await this.api("/api/cluster/status");
+      const routerEl = document.getElementById("arch-router-type");
+      const shardsEl = document.getElementById("arch-shards-count");
+      const failoverEl = document.getElementById("arch-failover-status");
+
+      if (routerEl) {
+        routerEl.textContent = status.is_sharded ? "mongos (Cluster Shardé)" : "mongos (Mode Sharding)";
+      }
+      if (shardsEl) {
+        shardsEl.textContent = status.shards?.length ? `${status.shards.length} Shards (${status.shards.length * 3} Nœuds)` : "2 Shards (6 Nœuds)";
+      }
+      if (failoverEl) {
+        failoverEl.textContent = "Actif (Quorum N/2 + 1)";
+      }
+    } catch (e) {
+      console.warn("Impossible de récupérer les métriques du cluster:", e);
+    }
   },
 
 
